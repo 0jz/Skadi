@@ -11,11 +11,15 @@ import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
 import com.smiraj.meditation.scan.AppsSection
+import com.smiraj.meditation.scan.DeviceCheckItem
+import com.smiraj.meditation.scan.DeviceSection
+import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.LeciReport
 import com.smiraj.meditation.scan.LocationSection
 import com.smiraj.meditation.scan.PackageScanner
 import com.smiraj.meditation.scan.PreflightResult
 import com.smiraj.meditation.scan.ScanSnapshot
+import com.smiraj.meditation.scan.SpecialAccessChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -27,7 +31,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** The breathing animation phase, derived from elapsed time. */
 enum class BreathPhase { IN, OUT }
 
 data class TimerState(
@@ -46,6 +49,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = SessionRepository(AppDatabase.get(app).sessionDao())
     private val settingsStore = SettingsStore(app)
     private val packageScanner = PackageScanner(app)
+    private val specialAccessChecker = SpecialAccessChecker(app)
 
     val sessions: StateFlow<List<Session>> =
         repo.sessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -93,11 +97,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Diagnostics
     }
 
-    /**
-     * Triggered when the user enters the secret code.
-     * Resets state and runs the package scanner in the background so results
-     * are ready by the time the user reaches the Safety screen.
-     */
     fun enterDiagnostics() {
         _scanSnapshot.value = ScanSnapshot.empty()
         _leciReport.value = LeciReport.demo()
@@ -120,20 +119,32 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Runs preflight then opens the report.
-     * Builds LeciReport from current scan results before navigating.
+     * Runs real special-access preflight, then builds LeciReport from scan
+     * results and navigates to the appropriate screen.
+     *
+     * If [PreflightResult.BlockedByAccessibilityRisk]: go to PreflightBlocked.
+     * Otherwise: build report and go to Safety.
      */
     fun confirmSafetyGate() {
-        val preflight = runPreflight()
+        val specialAccess = specialAccessChecker.check()
+        val preflight = when {
+            specialAccess.hasBlockingRisk    -> PreflightResult.BlockedByAccessibilityRisk
+            specialAccess.hasGuidedAuditRisk -> PreflightResult.NeedsGuidedAudit
+            else                             -> PreflightResult.Clear
+        }
+
+        if (preflight == PreflightResult.BlockedByAccessibilityRisk) {
+            _screen.value = Screen.PreflightBlocked
+            return
+        }
+
         val snapshot = _scanSnapshot.value
 
-        // Build AppsSection from real scan results
         val appsSection = AppsSection(
             findings = snapshot.findings,
             ready = snapshot.ranAtMillis > 0,
         )
 
-        // LocationSection: derive app names with location permission from findings
         val locationApps = snapshot.findings
             .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
             .map { it.appName }
@@ -142,25 +153,59 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ready = snapshot.ranAtMillis > 0,
         )
 
+        val deviceItems = buildDeviceCheckItems(specialAccess)
+        val deviceSection = DeviceSection(
+            checkItems = deviceItems,
+            ready = true,
+        )
+
         _leciReport.value = LeciReport.demo().copy(
             preflight = preflight,
             apps = appsSection,
             location = locationSection,
+            device = deviceSection,
         )
 
-        _screen.value = when (preflight) {
-            PreflightResult.BlockedByAccessibilityRisk -> Screen.PreflightBlocked
-            else -> Screen.Safety
-        }
+        _screen.value = Screen.Safety
     }
 
     /**
-     * Placeholder preflight — returns Clear until feature/real-scanner-special-access
-     * adds real Accessibility / NotificationListener / DeviceAdmin checks.
+     * Converts [SpecialAccessChecker.Result] into [DeviceCheckItem] list
+     * for display in the Leči report DeviceSection.
+     * No destructive actions — guidance only.
      */
-    private fun runPreflight(): PreflightResult {
-        // TODO(feature/real-scanner-special-access)
-        return PreflightResult.Clear
+    private fun buildDeviceCheckItems(
+        result: SpecialAccessChecker.Result,
+    ): List<DeviceCheckItem> {
+        val items = mutableListOf<DeviceCheckItem>()
+
+        result.notificationListeners.forEach { app ->
+            items += DeviceCheckItem(
+                label = "Pristup obaveštenjima: ${app.appName}",
+                guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
+                    "Pristup obaveštenjima → ukloni ako ne prepoznaješ.",
+                severity = FindingSeverity.Medium,
+            )
+        }
+
+        result.deviceAdmins.forEach { app ->
+            items += DeviceCheckItem(
+                label = "Admin uređaja: ${app.appName}",
+                guidance = "Podešavanja → Bezbednost → Admin aplikacije uređaja → " +
+                    "deaktiviraj ako ne prepoznaješ.",
+                severity = FindingSeverity.Medium,
+            )
+        }
+
+        // Always add usage-access guidance (we can't read it without the permission)
+        items += DeviceCheckItem(
+            label = "Pristup korišćenju aplikacija",
+            guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
+                "Pristup podacima o korišćenju → proveri nepoznate aplikacije.",
+            severity = FindingSeverity.Low,
+        )
+
+        return items
     }
 
     fun setSafetyMode(mode: SafetyMode) {
