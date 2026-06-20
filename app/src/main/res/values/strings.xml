@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">Smiraj</string>
+
+    <!-- Tabs -->
+    <string name="tab_meditate">Meditiraj</string>
+    <string name="tab_history">Istorija</string>
+    <string name="tab_settings">Podešavanja</string>
+
+    <!-- Meditation -->
+    <string name="start">Počni</string>
+    <string name="stop">Zaustavi</string>
+    <string name="breathe_in">Udahni</string>
+    <string name="breathe_out">Izdahni</string>
+    <string name="custom_minutes">Prilagodi</string>
+    <string name="minutes_short">min</string>
+    <string name="session_done">Sesija završena</string>
+
+    <!-- History -->
+    <string name="streak_days">Dani zaredom</string>
+    <string name="no_sessions">Još nema sesija. Počni prvu danas.</string>
+    <string name="total_sessions">Ukupno sesija</string>
+    <string name="total_minutes">Ukupno minuta</string>
+
+    <!-- Settings -->
+    <string name="ambient_sound">Ambijentalni zvuk</string>
+    <string name="ambient_rain">Kiša</string>
+    <string name="ambient_forest">Šuma</string>
+    <string name="ambient_none">Bez zvuka</string>
+
+    <!-- Diagnostics (Level 2 — neutral privacy view; no DV language here) -->
+    <string name="diag_title">Privatnost i dozvole</string>
+    <string name="diag_subtitle">Pogledaj koje aplikacije pristupaju tvojoj lokaciji, mikrofonu i zdravstvenim podacima.</string>
+    <string name="diag_checking">Proveravam podešavanja privatnosti…</string>
+    <string name="diag_back">Nazad</string>
+</resources>
