@@ -54,8 +54,8 @@ Dodato je dovoljno da demo tok radi od pocetka do kraja:
 
 - Checklist bezbednog redosleda: dokumentuj, promeni lozinke, izbaci sesije,
   ukloni sumnjive aplikacije, uskladi tajming sa podrskom.
-- Lokalni generator jake lozinke.
-- Deep-link na Google Password Checkup.
+- Nema predloga nove lozinke i nema generisanja lozinke u clean shell-u.
+- Lozinke i account audit idu u zaseban feature sloj.
 - Tap-to-call za ASTRA i policiju.
 
 Nema automatskog brisanja, nema batch akcija, nema cuvanja nalaza na disk.
@@ -90,6 +90,11 @@ Grana `integration/clean-secret-shell` je namenjena za spajanje realnih feature-
 bez runtime mock bezbednosnih nalaza. Tajni meni ostaje, ali `ScanSnapshot` se na
 ulazu resetuje na prazan rezultat. Mock/test podaci treba da žive samo u
 `feature/real-scanner-test-fixture` ili demo/debug flavor-u.
+
+Clean shell takodje ne sadrzi Password Checkup, predloge novih lozinki ili
+generator lozinki. Ti delovi treba da se vrate tek kroz
+`feature/real-scanner-account-audit` i odgovarajuce `cut-*` grane, kada budu
+vezani za pravila privatnosti, offline obradu i jasnu jacinu secenja.
 
 ## 6. Pitch deck kasnije
 
