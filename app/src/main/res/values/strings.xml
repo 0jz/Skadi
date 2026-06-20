@@ -27,7 +27,7 @@
     <string name="ambient_forest">Šuma</string>
     <string name="ambient_none">Bez zvuka</string>
 
-    <!-- Diagnostics: neutral privacy language only -->
+    <!-- Diagnostics -->
     <string name="diag_title">Privatnost i dozvole</string>
     <string name="diag_subtitle">Pogledaj koje aplikacije pristupaju tvojoj lokaciji, mikrofonu i zdravstvenim podacima.</string>
     <string name="diag_checking">Provera još nije pokrenuta.</string>
@@ -36,6 +36,8 @@
     <string name="finding_low">Nisko</string>
     <string name="finding_medium">Srednje</string>
     <string name="finding_high">Visoko</string>
+    <string name="diag_scanning">Skeniranje u toku&#8230;</string>
+    <string name="diag_no_findings">Nisu pronađene rizične kombinacije dozvola.</string>
 
     <!-- Safety gate -->
     <string name="safety_gate_title">Jesi li na bezbednom mestu?</string>
@@ -43,23 +45,19 @@
     <string name="safety_gate_confirm">Da, nastavi</string>
     <string name="safety_gate_cancel">Ne sada</string>
 
-    <!-- Preflight blocked: neutral language, no DV framing -->
+    <!-- Preflight -->
     <string name="preflight_blocked_title">Provera privatnosti trenutno nije dostupna</string>
     <string name="preflight_blocked_body">Zbog aktuelnih podešavanja pristupačnosti na ovom uređaju, pregled nije moguć. Proveri Podešavanja → Pristupačnost i pokušaj ponovo.</string>
     <string name="preflight_blocked_action">Vrati se na aplikaciju</string>
-
-    <!-- Preflight guided-audit banner -->
     <string name="preflight_needs_audit_banner">Neka podešavanja pristupačnosti treba ručno proveriti pre nastavka. Pogledaj Podešavanja → Pristupačnost.</string>
 
     <!-- Safety screen -->
     <string name="safety_title">Leči / Seči</string>
     <string name="mode_heal">Leči</string>
     <string name="mode_cut">Seči</string>
-
-    <!-- Leči report intro -->
     <string name="leci_intro">Ništa se ne menja automatski. Ovo je pregled — svaka akcija je tvoja odluka.</string>
 
-    <!-- Risk levels for report cards -->
+    <!-- Risk levels -->
     <string name="risk_low">Nizak</string>
     <string name="risk_medium">Srednji</string>
     <string name="risk_high">Visok</string>
@@ -71,11 +69,18 @@
 
     <!-- Section 2: Accounts -->
     <string name="leci_accounts_title">Nalozi i sesije</string>
-    <string name="leci_accounts_not_ready">Pregled naloga dolazi u sledećoj fazi. Ručno proveri aktivne sesije na Google, Microsoft i Facebook nalozima i ukloni nepoznate uređaje.</string>
-    <string name="leci_accounts_no_entries">Nema uvezenih naloga za pregled.</string>
+    <string name="leci_accounts_not_ready">Učitavanje naloga&#8230;</string>
+    <string name="leci_accounts_no_entries">Nema naloga za pregled.</string>
     <!-- %1$s = generated password -->
-    <string name="account_suggested_password">Predložena nova lozinka: %1$s</string>
+    <string name="account_suggested_password">Nova lozinka: %1$s</string>
     <string name="account_open_security_page">Otvori stranicu bezbednosti</string>
+
+    <!-- CSV import -->
+    <string name="csv_add_hint">Dodaj naloge iz svog menadžera lozinki (CSV):</string>
+    <string name="csv_load_demo">Demo CSV</string>
+    <string name="csv_reload_demo">Demo CSV</string>
+    <string name="csv_import">Uvezi CSV</string>
+    <string name="csv_importing">Uvoz u toku&#8230;</string>
 
     <!-- Section 3: Location -->
     <string name="leci_location_title">Lokacija i porodično praćenje</string>
@@ -96,13 +101,11 @@
     <string name="cut_step_support">Uskladi tajming sa osobom od poverenja ili podrškom.</string>
     <string name="cut_accounts_title">Promeni lozinke za ove naloge</string>
     <string name="cut_accounts_hint">Svaka lozinka je generisana na uređaju i nikad nije poslata na mrežu. Označi nalog kao završen tek kad ga promeniš ručno na sajtu.</string>
+    <string name="cut_accounts_import_prompt">Uvezi CSV iz menadžera lozinki da vidiš naloge sa slabim lozinkama.</string>
+    <string name="cut_accounts_all_strong">Sve uvezene lozinke su jake. Dobro urađeno.</string>
 
     <!-- Resource panel -->
     <string name="resources_title">Hitni kontakti</string>
     <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
     <string name="call_police">Pozovi policiju 192</string>
-
-    <!-- Diagnostics scanning states -->
-    <string name="diag_scanning">Skeniranje u toku&#8230;</string>
-    <string name="diag_no_findings">Nisu pronađene rizične kombinacije dozvola.</string>
 </resources>

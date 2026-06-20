@@ -122,6 +122,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
             val context = LocalContext.current
             val report by vm.leciReport.collectAsStateWithLifecycle()
             val mode by vm.safetyMode.collectAsStateWithLifecycle()
+            val csvImporting by vm.csvImporting.collectAsStateWithLifecycle()
             SafetyScreen(
                 report = report,
                 mode = mode,
@@ -133,6 +134,9 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                     context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:192")))
                 },
                 onBack = vm::exitToCover,
+                onLoadDemoCsv = vm::loadDemoCsv,
+                onImportCsv = vm::importCsvFromUri,
+                csvImporting = csvImporting,
             )
         }
     }

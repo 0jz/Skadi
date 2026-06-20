@@ -1,6 +1,7 @@
 package com.smiraj.meditation
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.smiraj.meditation.data.AppDatabase
@@ -13,6 +14,7 @@ import com.smiraj.meditation.safety.SafetyMode
 import com.smiraj.meditation.scan.AccountAudit
 import com.smiraj.meditation.scan.AccountsSection
 import com.smiraj.meditation.scan.AppsSection
+import com.smiraj.meditation.scan.CsvPasswordImporter
 import com.smiraj.meditation.scan.DeviceCheckItem
 import com.smiraj.meditation.scan.DeviceSection
 import com.smiraj.meditation.scan.FindingSeverity
@@ -78,6 +80,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _safetyMode = MutableStateFlow(SafetyMode.Heal)
     val safetyMode: StateFlow<SafetyMode> = _safetyMode.asStateFlow()
 
+    /** True while a CSV is being parsed from a content URI. */
+    private val _csvImporting = MutableStateFlow(false)
+    val csvImporting: StateFlow<Boolean> = _csvImporting.asStateFlow()
+
     private var tickJob: Job? = null
 
     val streak: Int get() = computeStreak(sessions.value)
@@ -88,7 +94,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Meditation
         _safetyMode.value = SafetyMode.Heal
         _scanSnapshot.value = ScanSnapshot.empty()
-        // Clear sensitive report data from memory on exit
+        // Wipe sensitive report data (account entries, passwords) from memory
         _leciReport.value = LeciReport.demo()
     }
 
@@ -122,11 +128,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Runs real special-access preflight, then builds a full LeciReport
-     * (including demo account data) and navigates to the appropriate screen.
-     *
-     * If [PreflightResult.BlockedByAccessibilityRisk]: go to PreflightBlocked.
-     * Otherwise: build report with all four sections and go to Safety.
+     * Runs real special-access preflight, builds the full Leči report.
+     * Demo accounts are loaded immediately. CSV import via [loadDemoCsv] or
+     * [importCsvFromUri] merges additional accounts into the existing list.
      */
     fun confirmSafetyGate() {
         val specialAccess = specialAccessChecker.check()
@@ -143,50 +147,75 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         val snapshot = _scanSnapshot.value
 
-        val appsSection = AppsSection(
-            findings = snapshot.findings,
-            ready = snapshot.ranAtMillis > 0,
-        )
-
-        // Account audit: demo data generated offline, cleared on exitToCover()
-        val accountsSection = AccountsSection(
-            entries = AccountAudit.demoAccounts(),
-            ready = true,
-        )
-
         val locationApps = snapshot.findings
             .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
             .map { it.appName }
-        val locationSection = LocationSection(
-            appsWithLocation = locationApps,
-            ready = snapshot.ranAtMillis > 0,
-        )
-
-        val deviceSection = DeviceSection(
-            checkItems = buildDeviceCheckItems(specialAccess),
-            ready = true,
-        )
 
         _leciReport.value = LeciReport.demo().copy(
             preflight = preflight,
-            apps = appsSection,
-            accounts = accountsSection,
-            location = locationSection,
-            device = deviceSection,
+            apps = AppsSection(findings = snapshot.findings, ready = snapshot.ranAtMillis > 0),
+            // Accounts: start with demo entries visible immediately.
+            // CSV import via loadDemoCsv() / importCsvFromUri() merges additional entries.
+            accounts = AccountsSection(entries = AccountAudit.demoAccounts(), ready = true),
+            location = LocationSection(appsWithLocation = locationApps, ready = snapshot.ranAtMillis > 0),
+            device = DeviceSection(checkItems = buildDeviceCheckItems(specialAccess), ready = true),
         )
 
         _screen.value = Screen.Safety
     }
 
+    // ---- CSV import --------------------------------------------------------
+
     /**
-     * Converts [SpecialAccessChecker.Result] into [DeviceCheckItem] list.
-     * Guidance only — nothing is changed.
+     * Load the bundled demo CSV from assets and populate the accounts section.
+     * Shows the same set of entries on every demo run.
      */
+    fun loadDemoCsv() {
+        val entries = CsvPasswordImporter.demo(getApplication())
+        updateAccountsFromCsv(entries)
+    }
+
+    /**
+     * Parse a user-selected CSV file from a content URI and populate the
+     * accounts section. File is read once on an IO thread; plaintext is not
+     * written back to disk.
+     */
+    fun importCsvFromUri(uri: Uri) {
+        viewModelScope.launch {
+            _csvImporting.value = true
+            val entries = withContext(Dispatchers.IO) {
+                CsvPasswordImporter.fromUri(getApplication(), uri)
+            }
+            updateAccountsFromCsv(entries)
+            _csvImporting.value = false
+        }
+    }
+
+    /**
+     * Merge CSV-derived entries with whatever accounts are already in the report.
+     * Accounts whose label (case-insensitive) already exists are skipped to avoid
+     * duplicates; new ones are appended at the end.
+     */
+    private fun updateAccountsFromCsv(entries: List<com.smiraj.meditation.scan.CsvPasswordEntry>) {
+        val csvEntries = if (entries.isEmpty()) emptyList()
+        else AccountAudit.fromCsvEntries(entries)
+
+        val existing = _leciReport.value.accounts.entries
+        val existingLabels = existing.map { it.label.lowercase() }.toSet()
+        val toAdd = csvEntries.filter { it.label.lowercase() !in existingLabels }
+        val merged = existing + toAdd
+
+        _leciReport.value = _leciReport.value.copy(
+            accounts = AccountsSection(entries = merged, ready = true),
+        )
+    }
+
+    // ---- Device check items ------------------------------------------------
+
     private fun buildDeviceCheckItems(
         result: SpecialAccessChecker.Result,
     ): List<DeviceCheckItem> {
         val items = mutableListOf<DeviceCheckItem>()
-
         result.notificationListeners.forEach { app ->
             items += DeviceCheckItem(
                 label = "Pristup obaveštenjima: ${app.appName}",
@@ -195,7 +224,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 severity = FindingSeverity.Medium,
             )
         }
-
         result.deviceAdmins.forEach { app ->
             items += DeviceCheckItem(
                 label = "Admin uređaja: ${app.appName}",
@@ -204,15 +232,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 severity = FindingSeverity.Medium,
             )
         }
-
-        // Usage access cannot be read without the permission — always show guidance
         items += DeviceCheckItem(
             label = "Pristup podacima o korišćenju",
             guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
                 "Pristup podacima o korišćenju → proveri nepoznate aplikacije.",
             severity = FindingSeverity.Low,
         )
-
         return items
     }
 
