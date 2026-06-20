@@ -43,22 +43,56 @@
     <string name="safety_gate_confirm">Da, nastavi</string>
     <string name="safety_gate_cancel">Ne sada</string>
 
-    <!-- Safety -->
-    <string name="safety_title">Bezbedni koraci</string>
-    <string name="safety_intro">Ovo su nalazi objašnjeni bez tehničkog žargona. Ništa se ne menja automatski.</string>
+    <!-- Preflight blocked: neutral language, no DV framing -->
+    <string name="preflight_blocked_title">Provera privatnosti trenutno nije dostupna</string>
+    <string name="preflight_blocked_body">Zbog aktuelnih podešavanja pristupačnosti na ovom uređaju, pregled nije moguć. Proveri Podešavanja → Pristupačnost i pokušaj ponovo.</string>
+    <string name="preflight_blocked_action">Vrati se na aplikaciju</string>
+
+    <!-- Preflight guided-audit banner -->
+    <string name="preflight_needs_audit_banner">Neka podešavanja pristupačnosti treba ručno proveriti pre nastavka. Pogledaj Podešavanja → Pristupačnost.</string>
+
+    <!-- Safety screen -->
+    <string name="safety_title">Leči / Seči</string>
     <string name="mode_heal">Leči</string>
     <string name="mode_cut">Seči</string>
-    <string name="heal_title">Leči: kupi vreme</string>
-    <string name="heal_body">Ovaj režim ne uklanja aplikacije i ne menja naloge. Cilj je da imaš pregled i plan bez vidljivog signala spolja.</string>
-    <string name="heal_map_stub">Demo mapa: tačna tačka → podeljeno samo na nivou kvarta.</string>
-    <string name="heal_prepare_snapshot">Pripremi tihi snapshot</string>
-    <string name="heal_snapshot_ready">Snapshot je spreman u memoriji</string>
+
+    <!-- Leči report intro -->
+    <string name="leci_intro">Ništa se ne menja automatski. Ovo je pregled — svaka akcija je tvoja odluka.</string>
+
+    <!-- Risk levels for report cards -->
+    <string name="risk_low">Nizak</string>
+    <string name="risk_medium">Srednji</string>
+    <string name="risk_high">Visok</string>
+
+    <!-- Section 1: Apps -->
+    <string name="leci_apps_title">Aplikacije i pristup</string>
+    <string name="leci_apps_not_ready">Realni skener dolazi u sledećoj fazi. Ručno proveri koje aplikacije imaju pristup lokaciji, mikrofonu i kameri: Podešavanja → Aplikacije → Dozvole.</string>
+    <string name="leci_apps_no_findings">Skener nije pronašao rizične kombinacije dozvola.</string>
+
+    <!-- Section 2: Accounts -->
+    <string name="leci_accounts_title">Nalozi i sesije</string>
+    <string name="leci_accounts_not_ready">Pregled naloga dolazi u sledećoj fazi. Ručno proveri aktivne sesije na Google, Microsoft i Facebook nalozima i ukloni nepoznate uređaje.</string>
+    <string name="leci_accounts_no_entries">Nema uvezenih naloga za pregled.</string>
+
+    <!-- Section 3: Location -->
+    <string name="leci_location_title">Lokacija i porodično praćenje</string>
+    <string name="leci_location_not_ready">Pregled deljenja lokacije dolazi u sledećoj fazi. Ručno proveri Google Maps → Deljenje lokacije, porodično deljenje i Find My Device podešavanja.</string>
+    <string name="leci_location_no_apps">Nisu pronađene aplikacije sa pristupom lokaciji.</string>
+
+    <!-- Section 4: Device -->
+    <string name="leci_device_title">Uređaj i fizički pristup</string>
+    <string name="leci_device_not_ready">Pregled uređaja dolazi u sledećoj fazi. Ručno proveri biometriku i PIN, uparene Bluetooth uređaje i podešavanja SIM kartice kod operatera.</string>
+    <string name="leci_device_no_items">Nema stavki za pregled uređaja.</string>
+
+    <!-- Seči panel -->
     <string name="cut_title">Seči: redosled za pregled</string>
     <string name="cut_step_document">Dokumentuj nalaze pre bilo kakve izmene.</string>
     <string name="cut_step_passwords">Promeni lozinke sa uređaja koji nije pod kontrolom druge osobe.</string>
     <string name="cut_step_sessions">Izbaci tuđe sesije i proveri recovery email/broj.</string>
     <string name="cut_step_remove">Ukloni sumnjive aplikacije tek kad je plan spreman.</string>
     <string name="cut_step_support">Uskladi tajming sa osobom od poverenja ili podrškom.</string>
+
+    <!-- Resource panel -->
     <string name="resources_title">Hitni kontakti</string>
     <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
     <string name="call_police">Pozovi policiju 192</string>

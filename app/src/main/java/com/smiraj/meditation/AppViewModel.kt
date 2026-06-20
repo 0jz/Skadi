@@ -10,6 +10,8 @@ import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
+import com.smiraj.meditation.scan.LeciReport
+import com.smiraj.meditation.scan.PreflightResult
 import com.smiraj.meditation.scan.ScanSnapshot
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -55,11 +57,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
     val scanSnapshot: StateFlow<ScanSnapshot> = _scanSnapshot.asStateFlow()
 
+    private val _leciReport = MutableStateFlow(LeciReport.demo())
+    val leciReport: StateFlow<LeciReport> = _leciReport.asStateFlow()
+
     private val _safetyMode = MutableStateFlow(SafetyMode.Heal)
     val safetyMode: StateFlow<SafetyMode> = _safetyMode.asStateFlow()
-
-    private val _healSnapshotPrepared = MutableStateFlow(false)
-    val healSnapshotPrepared: StateFlow<Boolean> = _healSnapshotPrepared.asStateFlow()
 
     private var tickJob: Job? = null
 
@@ -70,7 +72,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exitToCover() {
         _screen.value = Screen.Meditation
         _safetyMode.value = SafetyMode.Heal
-        _healSnapshotPrepared.value = false
+        // Clear sensitive in-memory state on exit
+        _scanSnapshot.value = ScanSnapshot.empty()
+        _leciReport.value = LeciReport.demo()
     }
 
     fun openSafetyGate() {
@@ -81,16 +85,40 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Diagnostics
     }
 
+    /**
+     * Called when the user confirms the safety gate.
+     *
+     * Runs a preflight check before showing the report.
+     * If preflight detects a blocking risk, navigates to [Screen.PreflightBlocked]
+     * instead of [Screen.Safety] — the report is never shown in that case.
+     *
+     * Real preflight detection is added in feature/real-scanner-special-access.
+     */
     fun confirmSafetyGate() {
-        _screen.value = Screen.Safety
+        val preflight = runPreflight()
+        _leciReport.value = LeciReport.demo().copy(preflight = preflight)
+
+        _screen.value = when (preflight) {
+            PreflightResult.BlockedByAccessibilityRisk -> Screen.PreflightBlocked
+            else -> Screen.Safety
+        }
+    }
+
+    /**
+     * Placeholder preflight check.
+     *
+     * Returns [PreflightResult.Clear] until feature/real-scanner-special-access
+     * adds real Accessibility, NotificationListener, DeviceAdmin, and UsageAccess checks.
+     */
+    private fun runPreflight(): PreflightResult {
+        // TODO(feature/real-scanner-special-access): check AccessibilityManager,
+        //   NotificationListenerService, DeviceAdminReceiver, UsageStatsManager access.
+        //   If any suspicious interactive-control access is active, return BlockedByAccessibilityRisk.
+        return PreflightResult.Clear
     }
 
     fun setSafetyMode(mode: SafetyMode) {
         _safetyMode.value = mode
-    }
-
-    fun prepareHealSnapshot() {
-        _healSnapshotPrepared.value = true
     }
 
     companion object {
@@ -112,16 +140,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * SINGLE FUNNEL for the custom-duration field. Every custom value the user
      * types arrives here, parsed to minutes.
-     *
-     * Phase 2 (per SKADI_DESIGN_MEDITATION.md §4) adds the magic-value check at
-     * the TOP of this function — if the entered value equals the user's secret
-     * code, navigate to the hidden layer INSTEAD of starting a session. Keeping
-     * all entry through this one method is why Phase 1 stays a clean meditation
-     * app and the trigger is a small, isolated addition later.
      */
     fun onCustomDurationEntered(minutes: Int) {
         if (minutes == TRIGGER_CODE) {
             _scanSnapshot.value = ScanSnapshot.empty()
+            _leciReport.value = LeciReport.demo()
             _screen.value = Screen.Diagnostics
             return
         }
@@ -147,7 +170,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** User-initiated stop before the timer ends. Records partial session. */
     fun stop() {
         if (!_timer.value.running) return
         finish(completed = false)
@@ -158,7 +180,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         tickJob?.cancel()
         tickJob = null
         val elapsed = s.totalSec - s.remainingSec
-        if (elapsed >= 10) { // ignore accidental taps under 10s
+        if (elapsed >= 10) {
             viewModelScope.launch { repo.record(elapsed, s.plannedMin, completed) }
         }
         _timer.value = s.copy(running = false, remainingSec = s.totalSec, justFinished = completed)

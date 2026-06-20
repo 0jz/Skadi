@@ -41,6 +41,7 @@ import com.smiraj.meditation.diagnostics.DiagnosticsScreen
 import com.smiraj.meditation.history.HistoryScreen
 import com.smiraj.meditation.meditation.AmbientPlayer
 import com.smiraj.meditation.meditation.MeditationScreen
+import com.smiraj.meditation.safety.PreflightBlockedScreen
 import com.smiraj.meditation.safety.SafetyGateScreen
 import com.smiraj.meditation.safety.SafetyScreen
 import com.smiraj.meditation.settings.SettingsScreen
@@ -89,6 +90,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
 
     when (screen) {
         Screen.Meditation -> CoverApp(vm)
+
         Screen.Diagnostics -> {
             BackHandler { vm.exitToCover() }
             val snapshot by vm.scanSnapshot.collectAsStateWithLifecycle()
@@ -98,6 +100,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                 onOpenSafetyGate = vm::openSafetyGate,
             )
         }
+
         Screen.SafetyGate -> {
             BackHandler { vm.returnToDiagnostics() }
             SafetyGateScreen(
@@ -105,20 +108,28 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                 onCancel = vm::returnToDiagnostics,
             )
         }
+
+        Screen.PreflightBlocked -> {
+            // Preflight detected a blocking risk — show neutral message, no report.
+            BackHandler { vm.exitToCover() }
+            PreflightBlockedScreen(onReturnToCover = vm::exitToCover)
+        }
+
         Screen.Safety -> {
             BackHandler { vm.exitToCover() }
             val context = LocalContext.current
-            val snapshot by vm.scanSnapshot.collectAsStateWithLifecycle()
+            val report by vm.leciReport.collectAsStateWithLifecycle()
             val mode by vm.safetyMode.collectAsStateWithLifecycle()
-            val healSnapshotPrepared by vm.healSnapshotPrepared.collectAsStateWithLifecycle()
             SafetyScreen(
-                snapshot = snapshot,
+                report = report,
                 mode = mode,
-                healSnapshotPrepared = healSnapshotPrepared,
                 onModeChange = vm::setSafetyMode,
-                onPrepareHealSnapshot = vm::prepareHealSnapshot,
-                onCallAstra = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:0117850000"))) },
-                onCallPolice = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:192"))) },
+                onCallAstra = {
+                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:0117850000")))
+                },
+                onCallPolice = {
+                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:192")))
+                },
                 onBack = vm::exitToCover,
             )
         }
@@ -139,7 +150,6 @@ private fun CoverApp(vm: AppViewModel) {
     val context = LocalContext.current
     val ambientPlayer = remember { AmbientPlayer(context) }
 
-    // Play/stop ambient with the session (no-op until audio files are bundled).
     LaunchedEffect(timer.running, settings.ambient) {
         if (timer.running && settings.ambient != Ambient.NONE) {
             ambientPlayer.play(settings.ambient)
@@ -148,7 +158,6 @@ private fun CoverApp(vm: AppViewModel) {
         }
     }
 
-    // Keep the screen awake during a running session if the user opted in.
     val view = LocalView.current
     LaunchedEffect(timer.running, settings.keepScreenOn) {
         val keep = timer.running && settings.keepScreenOn

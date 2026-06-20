@@ -11,5 +11,12 @@ enum class Screen {
     Meditation,
     Diagnostics,
     SafetyGate,
+    /** Leči/Seči report. Shown only after preflight passes. */
     Safety,
+    /**
+     * Shown when preflight detects a blocking accessibility risk.
+     * Displays a neutral "unavailable" message — no DV language, no report.
+     * Returns to cover on any action.
+     */
+    PreflightBlocked,
 }

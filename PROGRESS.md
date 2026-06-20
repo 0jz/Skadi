@@ -121,3 +121,51 @@ Dodati su planovi za sledeci sloj, bez implementacije feature koda:
   tehnologije, Leči/Seči metode, hitne situacije i granice scope-a.
 - `docs/FEATURE_BRANCH_ROADMAP.md` - opis svake feature grane, redosled cetiri
   bezbednosna dela, redosled Seči jacina, test fixture/demo plan i merge pravila.
+
+## 8. feature/real-scanner-heal-report (uradjeno)
+
+Grana bazirana na `integration/clean-secret-shell`.
+
+Konvertovana stara Safety screen u strukturirani Leči izveštaj sa četiri
+sekcije. Sve sekcije su u "nije spreman / demo" stanju — realni podaci dolaze
+kroz scanner i audit grane prema redosledu iz roadmapa.
+
+### Šta je dodato
+
+- `scan/PreflightResult.kt` — sealed class: `Clear`, `BlockedByAccessibilityRisk`,
+  `NeedsGuidedAudit`.
+- `scan/LeciReport.kt` — četiri data klase sekcija: `AppsSection`,
+  `AccountsSection`, `LocationSection`, `DeviceSection`, plus pomoćni modeli
+  `AccountEntry` i `DeviceCheckItem`. `LeciReport.demo()` factory za prazno
+  početno stanje.
+- `AppState.kt` — dodat `Screen.PreflightBlocked`.
+- `AppViewModel.kt` — `confirmSafetyGate()` sada pokreće preflight pre otvaranja
+  Safety ekrana. Ako `BlockedByAccessibilityRisk`, ide na `PreflightBlocked` umesto
+  `Safety`. `runPreflight()` placeholder vraća `Clear` dok
+  `feature/real-scanner-special-access` ne doda prave provere. Izbačen
+  `healSnapshotPrepared` (ne treba više). `exitToCover()` briše i `_leciReport`.
+- `safety/PreflightBlockedScreen.kt` — neutralan ekran bez DV jezika za slučaj
+  blokiranja. Vraća na cover.
+- `safety/SafetyScreen.kt` — potpuno repisana. Leči tab prikazuje četiri report
+  kartice sa sekcijskim ikonama. Svaka kartica prikazuje placeholder tekst dok
+  sekcija nije `ready`, ili realne podatke kada scanner grane popune model. Seči
+  tab zadržava postojeći checklist (radi se kroz `cut-*` grane). `SeverityChip`
+  helper za vizuelnu oznaku rizika.
+- `MainActivity.kt` — dodat case za `Screen.PreflightBlocked`. `Screen.Safety`
+  sada prima `LeciReport` umesto `ScanSnapshot` i `healSnapshotPrepared`.
+- `strings.xml` — novi stringovi za preflight blocked, guided-audit baner, Leči
+  intro, četiri sekcije i risk level oznake.
+
+### Šta nije promennjeno
+
+- `ScanSnapshot.kt` i `Finding` model — ostaju za Diagnostics screen i buduće
+  scanner grane.
+- `DiagnosticsScreen.kt` — bez promena.
+- `SafetyGateScreen.kt` — bez promena.
+- `SafetyMode.kt` — bez promena.
+
+### Sledeće grane
+
+`feature/real-scanner-app-scanner` popunjava `AppsSection` realnim PackageManager
+podacima i `Finding` listom. Taj branch se merguje u `integration/real-scanner-main`
+prema redosledu iz `docs/FEATURE_BRANCH_ROADMAP.md`.
