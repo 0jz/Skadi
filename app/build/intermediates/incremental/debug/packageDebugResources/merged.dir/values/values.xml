@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#3B6E7A</color>
+    <string name="about">O aplikaciji</string>
+    <string name="about_body">Smiraj ti pomaže da svakog dana odvojiš nekoliko minuta za disanje i smirenje.</string>
+    <string name="ambient_forest">Šuma</string>
+    <string name="ambient_none">Bez zvuka</string>
+    <string name="ambient_rain">Kiša</string>
+    <string name="ambient_sound">Ambijentalni zvuk</string>
+    <string name="app_name">Smiraj</string>
+    <string name="breathe_in">Udahni</string>
+    <string name="breathe_out">Izdahni</string>
+    <string name="custom_minutes">Prilagodi</string>
+    <string name="keep_screen_on">Drži ekran uključenim tokom sesije</string>
+    <string name="minutes_short">min</string>
+    <string name="no_sessions">Još nema sesija. Počni prvu danas.</string>
+    <string name="session_done">Sesija završena</string>
+    <string name="start">Počni</string>
+    <string name="stop">Zaustavi</string>
+    <string name="streak_days">Dani zaredom</string>
+    <string name="tab_history">Istorija</string>
+    <string name="tab_meditate">Meditiraj</string>
+    <string name="tab_settings">Podešavanja</string>
+    <string name="total_minutes">Ukupno minuta</string>
+    <string name="total_sessions">Ukupno sesija</string>
+    <style name="Theme.Smiraj" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/ic_launcher_background</item>
+        <item name="android:windowBackground">#F3F6F7</item>
+    </style>
+</resources>
