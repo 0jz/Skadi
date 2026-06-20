@@ -105,3 +105,5 @@ Dodati su planovi za sledeci sloj, bez implementacije feature koda:
 - `docs/REAL_SCANNER_EXECUTION_PLAN.md` - redosled branch-eva, Leči kao report,
   Seči jačine, demo vs production scope, privatnosna pravila.
 - `docs/PITCH_DECK.md` - skeleton pitch deck-a.
+- `docs/MENTOR_TECHNICAL_BRIEF.md` - kratko tehnicko objasnjenje za mentora:
+  tehnologije, Leči/Seči metode, hitne situacije i granice scope-a.
