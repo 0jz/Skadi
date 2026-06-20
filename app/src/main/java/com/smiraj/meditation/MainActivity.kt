@@ -120,9 +120,6 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                 onModeChange = vm::setSafetyMode,
                 onPrepareHealSnapshot = vm::prepareHealSnapshot,
                 onRegeneratePassword = vm::regeneratePassword,
-                onOpenPasswordCheckup = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PASSWORD_CHECKUP_URL)))
-                },
                 onCallAstra = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:0117850000"))) },
                 onCallPolice = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:192"))) },
                 onBack = vm::exitToCover,
@@ -130,8 +127,6 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
         }
     }
 }
-
-private const val PASSWORD_CHECKUP_URL = "https://passwords.google.com/checkup/start"
 
 // ---- Cover (Level 1): the meditation app ----------------------------------
 

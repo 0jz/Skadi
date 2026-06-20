@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -23,8 +22,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,7 +40,6 @@ fun SafetyScreen(
     onModeChange: (SafetyMode) -> Unit,
     onPrepareHealSnapshot: () -> Unit,
     onRegeneratePassword: () -> Unit,
-    onOpenPasswordCheckup: () -> Unit,
     onCallAstra: () -> Unit,
     onCallPolice: () -> Unit,
     onBack: () -> Unit,
@@ -93,7 +89,6 @@ fun SafetyScreen(
                     SafetyMode.Cut -> CutPanel(
                         generatedPassword = generatedPassword,
                         onRegeneratePassword = onRegeneratePassword,
-                        onOpenPasswordCheckup = onOpenPasswordCheckup,
                     )
                 }
             }
@@ -169,9 +164,7 @@ private fun HealPanel(
 private fun CutPanel(
     generatedPassword: String,
     onRegeneratePassword: () -> Unit,
-    onOpenPasswordCheckup: () -> Unit,
 ) {
-    val checked = remember { mutableStateListOf(false, false, false, false, false) }
     val steps = listOf(
         R.string.cut_step_document,
         R.string.cut_step_passwords,
@@ -187,10 +180,14 @@ private fun CutPanel(
         ) {
             Text(stringResource(R.string.cut_title), style = MaterialTheme.typography.titleMedium)
             steps.forEachIndexed { index, label ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = checked[index],
-                        onCheckedChange = { checked[index] = it },
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        text = "${index + 1}.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
                         stringResource(label),
@@ -207,12 +204,6 @@ private fun CutPanel(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.regenerate_password))
-                }
-                Button(
-                    onClick = onOpenPasswordCheckup,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.password_checkup))
                 }
             }
         }

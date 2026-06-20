@@ -53,7 +53,7 @@
     <string name="heal_map_stub">Demo mapa: tačna tačka → podeljeno samo na nivou kvarta.</string>
     <string name="heal_prepare_snapshot">Pripremi tihi snapshot</string>
     <string name="heal_snapshot_ready">Snapshot je spreman u memoriji</string>
-    <string name="cut_title">Seči: bezbedan redosled</string>
+    <string name="cut_title">Seči: redosled za pregled</string>
     <string name="cut_step_document">Dokumentuj nalaze pre bilo kakve izmene.</string>
     <string name="cut_step_passwords">Promeni lozinke sa uređaja koji nije pod kontrolom druge osobe.</string>
     <string name="cut_step_sessions">Izbaci tuđe sesije i proveri recovery email/broj.</string>
@@ -61,7 +61,6 @@
     <string name="cut_step_support">Uskladi tajming sa osobom od poverenja ili podrškom.</string>
     <string name="generated_password">Predlog nove jake lozinke</string>
     <string name="regenerate_password">Nova lozinka</string>
-    <string name="password_checkup">Password Checkup</string>
     <string name="resources_title">Hitni kontakti</string>
     <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
     <string name="call_police">Pozovi policiju 192</string>
