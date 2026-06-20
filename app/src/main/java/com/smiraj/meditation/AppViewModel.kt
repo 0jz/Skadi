@@ -9,6 +9,9 @@ import com.smiraj.meditation.data.SettingsStore
 import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
+import com.smiraj.meditation.safety.SafetyMode
+import com.smiraj.meditation.scan.ScanSnapshot
+import com.smiraj.meditation.scan.demoSnapshot
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,9 +50,65 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _timer = MutableStateFlow(TimerState())
     val timer: StateFlow<TimerState> = _timer.asStateFlow()
 
+    private val _screen = MutableStateFlow(Screen.Meditation)
+    val screen: StateFlow<Screen> = _screen.asStateFlow()
+
+    private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
+    val scanSnapshot: StateFlow<ScanSnapshot> = _scanSnapshot.asStateFlow()
+
+    private val _safetyMode = MutableStateFlow(SafetyMode.Heal)
+    val safetyMode: StateFlow<SafetyMode> = _safetyMode.asStateFlow()
+
+    private val _generatedPassword = MutableStateFlow(generatePassword())
+    val generatedPassword: StateFlow<String> = _generatedPassword.asStateFlow()
+
+    private val _healSnapshotPrepared = MutableStateFlow(false)
+    val healSnapshotPrepared: StateFlow<Boolean> = _healSnapshotPrepared.asStateFlow()
+
     private var tickJob: Job? = null
 
     val streak: Int get() = computeStreak(sessions.value)
+
+    // ---- Hidden-layer navigation ------------------------------------------
+
+    fun exitToCover() {
+        _screen.value = Screen.Meditation
+        _safetyMode.value = SafetyMode.Heal
+        _healSnapshotPrepared.value = false
+    }
+
+    fun openSafetyGate() {
+        if (_screen.value == Screen.Diagnostics) _screen.value = Screen.SafetyGate
+    }
+
+    fun returnToDiagnostics() {
+        _screen.value = Screen.Diagnostics
+    }
+
+    fun confirmSafetyGate() {
+        _screen.value = Screen.Safety
+    }
+
+    fun setSafetyMode(mode: SafetyMode) {
+        _safetyMode.value = mode
+    }
+
+    fun prepareHealSnapshot() {
+        _healSnapshotPrepared.value = true
+    }
+
+    fun regeneratePassword() {
+        _generatedPassword.value = generatePassword()
+    }
+
+    companion object {
+        /**
+         * Default out-of-range secret code for the "Prilagodi" field. A real
+         * session is coerced to at least 1 minute, so 0 cannot collide with the
+         * cover app's normal behavior.
+         */
+        const val TRIGGER_CODE = 0
+    }
 
     // ---- Session selection / start ----------------------------------------
 
@@ -69,7 +128,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * app and the trigger is a small, isolated addition later.
      */
     fun onCustomDurationEntered(minutes: Int) {
-        // --- Phase 2 hook goes here (do not implement the secret layer now) ---
+        if (minutes == TRIGGER_CODE) {
+            _scanSnapshot.value = demoSnapshot()
+            _screen.value = Screen.Diagnostics
+            return
+        }
 
         val safe = minutes.coerceIn(1, 180)
         selectPreset(safe)
@@ -122,4 +185,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setKeepScreenOn(value: Boolean) {
         viewModelScope.launch { settingsStore.setKeepScreenOn(value) }
     }
+}
+
+private fun generatePassword(): String {
+    val lower = "abcdefghijkmnopqrstuvwxyz"
+    val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    val digits = "23456789"
+    val symbols = "!@#%*?"
+    val all = lower + upper + digits + symbols
+    val required = listOf(lower.random(), upper.random(), digits.random(), symbols.random())
+    return (required + List(12) { all.random() })
+        .shuffled()
+        .joinToString("")
 }

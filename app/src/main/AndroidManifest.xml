@@ -9,20 +9,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Smiraj">
 
-        <!--
-          Phase 1: single, plain launcher activity. The cover identity is "Smiraj".
-          Phase 2 will introduce an <activity-alias> for the mask + FLAG_SECURE,
-          per SKADI_DESIGN_MEDITATION.md §6. Do NOT add the secret layer here.
-        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Smiraj">
+            android:theme="@style/Theme.Smiraj" />
+
+        <activity-alias
+            android:name=".SmirajLauncher"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 </manifest>
