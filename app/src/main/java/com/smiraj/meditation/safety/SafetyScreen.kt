@@ -1,5 +1,7 @@
 package com.smiraj.meditation.safety
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
@@ -29,16 +33,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.smiraj.meditation.R
 import com.smiraj.meditation.scan.AccountEntry
-import com.smiraj.meditation.scan.AppsSection
 import com.smiraj.meditation.scan.AccountsSection
+import com.smiraj.meditation.scan.AppsSection
 import com.smiraj.meditation.scan.DeviceSection
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
@@ -82,12 +89,10 @@ fun SafetyScreen(
         ) {
             item { Spacer(Modifier.height(4.dp)) }
 
-            // Preflight guided-audit banner (shown when NeedsGuidedAudit)
             if (report.preflight == PreflightResult.NeedsGuidedAudit) {
                 item { GuidedAuditBanner() }
             }
 
-            // Mode toggle
             item {
                 ModePicker(mode = mode, onModeChange = onModeChange)
             }
@@ -101,54 +106,41 @@ fun SafetyScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // Section 1: Apps
                     item {
                         ReportSectionCard(
                             icon = Icons.Filled.Lock,
                             title = stringResource(R.string.leci_apps_title),
-                            content = {
-                                AppsContent(report.apps)
-                            },
+                            content = { AppsContent(report.apps) },
                         )
                     }
-                    // Section 2: Accounts
                     item {
                         ReportSectionCard(
                             icon = Icons.Filled.AccountCircle,
                             title = stringResource(R.string.leci_accounts_title),
-                            content = {
-                                AccountsContent(report.accounts)
-                            },
+                            content = { AccountsContent(report.accounts) },
                         )
                     }
-                    // Section 3: Location
                     item {
                         ReportSectionCard(
                             icon = Icons.Filled.Place,
                             title = stringResource(R.string.leci_location_title),
-                            content = {
-                                LocationContent(report.location)
-                            },
+                            content = { LocationContent(report.location) },
                         )
                     }
-                    // Section 4: Device
                     item {
                         ReportSectionCard(
                             icon = Icons.Filled.PhoneAndroid,
                             title = stringResource(R.string.leci_device_title),
-                            content = {
-                                DeviceContent(report.device)
-                            },
+                            content = { DeviceContent(report.device) },
                         )
                     }
                 }
 
                 SafetyMode.Cut -> {
-                    item { CutPanel() }
+                    item { CutPanel(accounts = report.accounts.entries) }
                 }
             }
 
-            // Resource panel always visible
             item {
                 ResourcePanel(
                     onCallAstra = onCallAstra,
@@ -286,7 +278,10 @@ private fun AccountsContent(section: AccountsSection) {
         )
         return
     }
-    section.entries.forEach { AccountEntryRow(it) }
+    section.entries.forEachIndexed { index, entry ->
+        if (index > 0) Spacer(Modifier.height(10.dp))
+        AccountEntryRow(entry)
+    }
 }
 
 @Composable
@@ -305,6 +300,13 @@ private fun AccountEntryRow(entry: AccountEntry) {
                 "• $reason",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (entry.suggestedPassword != null) {
+            Text(
+                stringResource(R.string.account_suggested_password, entry.suggestedPassword),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
     }
@@ -370,11 +372,13 @@ private fun DeviceContent(section: DeviceSection) {
     }
 }
 
-// ---- Seči panel (unchanged, full rework in cut-* branches) ----------------
+// ---- Seči panel ------------------------------------------------------------
 
 @Composable
-private fun CutPanel() {
-    val steps = listOf(
+private fun CutPanel(accounts: List<AccountEntry>) {
+    val context = LocalContext.current
+
+    val generalSteps = listOf(
         R.string.cut_step_document,
         R.string.cut_step_passwords,
         R.string.cut_step_sessions,
@@ -382,13 +386,18 @@ private fun CutPanel() {
         R.string.cut_step_support,
     )
 
+    val accountsWithPassword = accounts.filter { it.suggestedPassword != null }
+    val checkedState = remember(accountsWithPassword.map { it.label }) {
+        mutableStateOf(List(accountsWithPassword.size) { false })
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(stringResource(R.string.cut_title), style = MaterialTheme.typography.titleMedium)
-            steps.forEachIndexed { index, label ->
+            generalSteps.forEachIndexed { index, label ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.Top,
@@ -403,6 +412,88 @@ private fun CutPanel() {
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
+                }
+            }
+        }
+    }
+
+    if (accountsWithPassword.isNotEmpty()) {
+        Spacer(Modifier.height(0.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    stringResource(R.string.cut_accounts_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.cut_accounts_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                accountsWithPassword.forEachIndexed { index, entry ->
+                    val checked = checkedState.value[index]
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        val updated = checkedState.value.toMutableList()
+                                        updated[index] = !checked
+                                        checkedState.value = updated
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = if (checked)
+                                            Icons.Filled.CheckBox
+                                        else
+                                            Icons.Filled.CheckBoxOutlineBlank,
+                                        contentDescription = null,
+                                        tint = if (checked)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Text(
+                                    entry.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(entry.securityUrl))
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Filled.OpenInBrowser,
+                                    contentDescription = stringResource(R.string.account_open_security_page),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                        if (entry.suggestedPassword != null) {
+                            Text(
+                                stringResource(R.string.account_suggested_password, entry.suggestedPassword),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(start = 48.dp),
+                            )
+                        }
+                    }
                 }
             }
         }

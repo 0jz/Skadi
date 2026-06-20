@@ -48,18 +48,35 @@ data class AppsSection(
 
 /**
  * Populated by feature/real-scanner-account-audit.
- * MVP uses a fake offline CSV. Production uses user-selected import + Keystore.
+ * MVP uses demo offline data. Production uses user-selected import + Keystore.
  */
 data class AccountsSection(
     val entries: List<AccountEntry>,
     val ready: Boolean,
 )
 
+/**
+ * A single account entry with risk signals and optional offline-generated
+ * suggested password. Plaintext only briefly in memory; cleared on exit.
+ */
 data class AccountEntry(
+    /** Human-readable name shown in the report (e.g. "Google nalog"). */
     val label: String,
+    /** URL for the account's main page. */
     val siteUrl: String,
+    /**
+     * URL for the account's security/session settings page.
+     * Opened from the Seči panel so the user can act manually.
+     */
+    val securityUrl: String = siteUrl,
+    /** Risk signals shown as bullet points in the Leči card. */
     val riskReasons: List<String>,
     val severity: FindingSeverity,
+    /**
+     * Offline-generated password suggestion. null if no password change is
+     * needed. Generated with SecureRandom; never leaves the device.
+     */
+    val suggestedPassword: String? = null,
 )
 
 // ---- Section 3: Location and family sharing --------------------------------
