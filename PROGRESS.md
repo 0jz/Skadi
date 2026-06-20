@@ -107,3 +107,5 @@ Dodati su planovi za sledeci sloj, bez implementacije feature koda:
 - `docs/PITCH_DECK.md` - skeleton pitch deck-a.
 - `docs/MENTOR_TECHNICAL_BRIEF.md` - kratko tehnicko objasnjenje za mentora:
   tehnologije, Leči/Seči metode, hitne situacije i granice scope-a.
+- `docs/FEATURE_BRANCH_ROADMAP.md` - opis svake feature grane, redosled cetiri
+  bezbednosna dela, redosled Seči jacina, test fixture/demo plan i merge pravila.
