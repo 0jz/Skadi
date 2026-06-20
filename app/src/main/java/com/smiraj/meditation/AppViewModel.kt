@@ -1,6 +1,7 @@
 package com.smiraj.meditation
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.smiraj.meditation.data.AppDatabase
@@ -10,8 +11,21 @@ import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
+import com.smiraj.meditation.scan.AccountAudit
+import com.smiraj.meditation.scan.AccountsSection
+import com.smiraj.meditation.scan.AppsSection
+import com.smiraj.meditation.scan.CsvPasswordImporter
+import com.smiraj.meditation.scan.DeviceAudit
+import com.smiraj.meditation.scan.DeviceSection
+import com.smiraj.meditation.scan.FindingSeverity
+import com.smiraj.meditation.scan.LeciReport
+import com.smiraj.meditation.scan.LocationAudit
+import com.smiraj.meditation.scan.LocationSection
+import com.smiraj.meditation.scan.PackageScanner
+import com.smiraj.meditation.scan.PreflightResult
 import com.smiraj.meditation.scan.ScanSnapshot
-import com.smiraj.meditation.scan.demoSnapshot
+import com.smiraj.meditation.scan.SpecialAccessChecker
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,8 +34,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-/** The breathing animation phase, derived from elapsed time. */
 enum class BreathPhase { IN, OUT }
 
 data class TimerState(
@@ -39,6 +53,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = SessionRepository(AppDatabase.get(app).sessionDao())
     private val settingsStore = SettingsStore(app)
+    private val packageScanner = PackageScanner(app)
+    private val specialAccessChecker = SpecialAccessChecker(app)
 
     val sessions: StateFlow<List<Session>> =
         repo.sessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -56,14 +72,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
     val scanSnapshot: StateFlow<ScanSnapshot> = _scanSnapshot.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _leciReport = MutableStateFlow(LeciReport.demo())
+    val leciReport: StateFlow<LeciReport> = _leciReport.asStateFlow()
+
     private val _safetyMode = MutableStateFlow(SafetyMode.Heal)
     val safetyMode: StateFlow<SafetyMode> = _safetyMode.asStateFlow()
 
-    private val _generatedPassword = MutableStateFlow(generatePassword())
-    val generatedPassword: StateFlow<String> = _generatedPassword.asStateFlow()
-
-    private val _healSnapshotPrepared = MutableStateFlow(false)
-    val healSnapshotPrepared: StateFlow<Boolean> = _healSnapshotPrepared.asStateFlow()
+    /** True while a CSV is being parsed from a content URI. */
+    private val _csvImporting = MutableStateFlow(false)
+    val csvImporting: StateFlow<Boolean> = _csvImporting.asStateFlow()
 
     private var tickJob: Job? = null
 
@@ -74,7 +94,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exitToCover() {
         _screen.value = Screen.Meditation
         _safetyMode.value = SafetyMode.Heal
-        _healSnapshotPrepared.value = false
+        _scanSnapshot.value = ScanSnapshot.empty()
+        // Wipe sensitive report data (account entries, passwords) from memory
+        _leciReport.value = LeciReport.demo()
     }
 
     fun openSafetyGate() {
@@ -85,28 +107,120 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Diagnostics
     }
 
+    fun enterDiagnostics() {
+        _scanSnapshot.value = ScanSnapshot.empty()
+        _leciReport.value = LeciReport.demo()
+        _screen.value = Screen.Diagnostics
+        launchScan()
+    }
+
+    private fun launchScan() {
+        viewModelScope.launch {
+            _isScanning.value = true
+            val findings = withContext(Dispatchers.Default) {
+                packageScanner.scan()
+            }
+            _scanSnapshot.value = ScanSnapshot(
+                findings = findings,
+                ranAtMillis = System.currentTimeMillis(),
+            )
+            _isScanning.value = false
+        }
+    }
+
+    /**
+     * Runs real special-access preflight, builds the full Leči report.
+     * Demo accounts are loaded immediately. CSV import via [loadDemoCsv] or
+     * [importCsvFromUri] merges additional accounts into the existing list.
+     */
     fun confirmSafetyGate() {
+        val specialAccess = specialAccessChecker.check()
+        val preflight = when {
+            specialAccess.hasBlockingRisk    -> PreflightResult.BlockedByAccessibilityRisk
+            specialAccess.hasGuidedAuditRisk -> PreflightResult.NeedsGuidedAudit
+            else                             -> PreflightResult.Clear
+        }
+
+        if (preflight == PreflightResult.BlockedByAccessibilityRisk) {
+            _screen.value = Screen.PreflightBlocked
+            return
+        }
+
+        val snapshot = _scanSnapshot.value
+
+        val locationApps = snapshot.findings
+            .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
+            .map { it.appName }
+
+        _leciReport.value = LeciReport.demo().copy(
+            preflight = preflight,
+            apps = AppsSection(findings = snapshot.findings, ready = snapshot.ranAtMillis > 0),
+            // Accounts: start with demo entries visible immediately.
+            // CSV import via loadDemoCsv() / importCsvFromUri() merges additional entries.
+            accounts = AccountsSection(entries = AccountAudit.demoAccounts(), ready = true),
+            location = LocationSection(
+                appsWithLocation = locationApps,
+                familyFindings = LocationAudit.demoFindings(),
+                coarsenedMessage = LocationAudit.coarsenedMessage(),
+                ready = true,
+            ),
+            device = DeviceSection(checkItems = DeviceAudit.buildCheckItems(specialAccess), ready = true),
+        )
+
         _screen.value = Screen.Safety
+    }
+
+    // ---- CSV import --------------------------------------------------------
+
+    /**
+     * Load the bundled demo CSV from assets and populate the accounts section.
+     * Shows the same set of entries on every demo run.
+     */
+    fun loadDemoCsv() {
+        val entries = CsvPasswordImporter.demo(getApplication())
+        updateAccountsFromCsv(entries)
+    }
+
+    /**
+     * Parse a user-selected CSV file from a content URI and populate the
+     * accounts section. File is read once on an IO thread; plaintext is not
+     * written back to disk.
+     */
+    fun importCsvFromUri(uri: Uri) {
+        viewModelScope.launch {
+            _csvImporting.value = true
+            val entries = withContext(Dispatchers.IO) {
+                CsvPasswordImporter.fromUri(getApplication(), uri)
+            }
+            updateAccountsFromCsv(entries)
+            _csvImporting.value = false
+        }
+    }
+
+    /**
+     * Merge CSV-derived entries with whatever accounts are already in the report.
+     * Accounts whose label (case-insensitive) already exists are skipped to avoid
+     * duplicates; new ones are appended at the end.
+     */
+    private fun updateAccountsFromCsv(entries: List<com.smiraj.meditation.scan.CsvPasswordEntry>) {
+        val csvEntries = if (entries.isEmpty()) emptyList()
+        else AccountAudit.fromCsvEntries(entries)
+
+        val existing = _leciReport.value.accounts.entries
+        val existingLabels = existing.map { it.label.lowercase() }.toSet()
+        val toAdd = csvEntries.filter { it.label.lowercase() !in existingLabels }
+        val merged = existing + toAdd
+
+        _leciReport.value = _leciReport.value.copy(
+            accounts = AccountsSection(entries = merged, ready = true),
+        )
     }
 
     fun setSafetyMode(mode: SafetyMode) {
         _safetyMode.value = mode
     }
 
-    fun prepareHealSnapshot() {
-        _healSnapshotPrepared.value = true
-    }
-
-    fun regeneratePassword() {
-        _generatedPassword.value = generatePassword()
-    }
-
     companion object {
-        /**
-         * Default out-of-range secret code for the "Prilagodi" field. A real
-         * session is coerced to at least 1 minute, so 0 cannot collide with the
-         * cover app's normal behavior.
-         */
         const val TRIGGER_CODE = 0
     }
 
@@ -117,23 +231,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _timer.value = TimerState(plannedMin = minutes, totalSec = minutes * 60, remainingSec = minutes * 60)
     }
 
-    /**
-     * SINGLE FUNNEL for the custom-duration field. Every custom value the user
-     * types arrives here, parsed to minutes.
-     *
-     * Phase 2 (per SKADI_DESIGN_MEDITATION.md §4) adds the magic-value check at
-     * the TOP of this function — if the entered value equals the user's secret
-     * code, navigate to the hidden layer INSTEAD of starting a session. Keeping
-     * all entry through this one method is why Phase 1 stays a clean meditation
-     * app and the trigger is a small, isolated addition later.
-     */
     fun onCustomDurationEntered(minutes: Int) {
         if (minutes == TRIGGER_CODE) {
-            _scanSnapshot.value = demoSnapshot()
-            _screen.value = Screen.Diagnostics
+            enterDiagnostics()
             return
         }
-
         val safe = minutes.coerceIn(1, 180)
         selectPreset(safe)
         start()
@@ -155,7 +257,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** User-initiated stop before the timer ends. Records partial session. */
     fun stop() {
         if (!_timer.value.running) return
         finish(completed = false)
@@ -166,7 +267,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         tickJob?.cancel()
         tickJob = null
         val elapsed = s.totalSec - s.remainingSec
-        if (elapsed >= 10) { // ignore accidental taps under 10s
+        if (elapsed >= 10) {
             viewModelScope.launch { repo.record(elapsed, s.plannedMin, completed) }
         }
         _timer.value = s.copy(running = false, remainingSec = s.totalSec, justFinished = completed)
@@ -185,16 +286,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setKeepScreenOn(value: Boolean) {
         viewModelScope.launch { settingsStore.setKeepScreenOn(value) }
     }
-}
-
-private fun generatePassword(): String {
-    val lower = "abcdefghijkmnopqrstuvwxyz"
-    val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
-    val digits = "23456789"
-    val symbols = "!@#%*?"
-    val all = lower + upper + digits + symbols
-    val required = listOf(lower.random(), upper.random(), digits.random(), symbols.random())
-    return (required + List(12) { all.random() })
-        .shuffled()
-        .joinToString("")
 }
