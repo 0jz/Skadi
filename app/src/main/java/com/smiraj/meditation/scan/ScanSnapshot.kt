@@ -23,26 +23,3 @@ enum class FindingSeverity {
     Medium,
     High,
 }
-
-fun demoSnapshot(nowMillis: Long = System.currentTimeMillis()): ScanSnapshot =
-    ScanSnapshot(
-        findings = listOf(
-            Finding(
-                appName = "System Update",
-                packageName = "com.system.update.service",
-                severity = FindingSeverity.High,
-                signals = listOf("Lokacija", "Mikrofon", "SMS", "Bez ikone"),
-                neutralSummary = "Aplikacija ima vise osetljivih dozvola i nije vidljiva u launcheru.",
-                safetySummary = "Ovakva kombinacija moze da se koristi za pracenje lokacije ili aktivnosti. Dokumentuj nalaz pre bilo kakvog uklanjanja.",
-            ),
-            Finding(
-                appName = "Google Maps",
-                packageName = "com.google.android.apps.maps",
-                severity = FindingSeverity.Medium,
-                signals = listOf("Lokacija", "Deljenje lokacije"),
-                neutralSummary = "Proveri ko trenutno ima pristup tvojoj lokaciji.",
-                safetySummary = "Legitimno deljenje lokacije je cest nacin pracenja. Proveri sa bezbednog mesta pre gasenja deljenja.",
-            ),
-        ),
-        ranAtMillis = nowMillis,
-    )

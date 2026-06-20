@@ -40,7 +40,7 @@ Dodato je dovoljno da demo tok radi od pocetka do kraja:
 
 1. Meditation cover.
 2. Tajni kod `0`.
-3. Diagnostics sa demo `ScanSnapshot` nalazima samo u RAM-u.
+3. Diagnostics bez mock nalaza; realni skener se dodaje kroz posebne grane.
 4. Safety gate: "Jesi li na bezbednom mestu?"
 5. Safety ekran sa toggle-om `Leci` / `Seci`.
 
@@ -73,8 +73,8 @@ Sledeci sloj treba da zameni demo `ScanSnapshot` realnim in-memory skenerom:
 - Sve rezultate drzati u `ScanSnapshot` u ViewModel/process memoriji, nikad Room,
   DataStore ili fajl.
 
-Za demo je dovoljno da imamo jedan stvaran nalaz sa sideloadovanom test app
-"System Update"; ostalo moze da ostane roadmap u pitchu.
+Za demo je dovoljno da imamo jedan stvaran nalaz iz posebne test fixture app.
+Runtime mock nalazi ne treba da budu deo clean secret shell grane.
 
 ## 5. Build provera
 
@@ -83,6 +83,13 @@ Za demo je dovoljno da imamo jedan stvaran nalaz sa sideloadovanom test app
 `C:\Users\nikol\.gradle\wrapper\dists\gradle-8.9-bin\...\gradle-8.9\bin\gradle.bat assembleDebug`
 
 U repo-u nema `gradlew.bat` skripte, i sistemski `gradle` nije u PATH-u.
+
+## 5a. Clean secret shell
+
+Grana `integration/clean-secret-shell` je namenjena za spajanje realnih feature-a
+bez runtime mock bezbednosnih nalaza. Tajni meni ostaje, ali `ScanSnapshot` se na
+ulazu resetuje na prazan rezultat. Mock/test podaci treba da žive samo u
+`feature/real-scanner-test-fixture` ili demo/debug flavor-u.
 
 ## 6. Pitch deck kasnije
 

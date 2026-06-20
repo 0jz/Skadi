@@ -30,7 +30,7 @@
     <!-- Diagnostics: neutral privacy language only -->
     <string name="diag_title">Privatnost i dozvole</string>
     <string name="diag_subtitle">Pogledaj koje aplikacije pristupaju tvojoj lokaciji, mikrofonu i zdravstvenim podacima.</string>
-    <string name="diag_checking">Proveravam podešavanja privatnosti…</string>
+    <string name="diag_checking">Provera još nije pokrenuta.</string>
     <string name="diag_review_options">Pregledaj sledeće korake</string>
     <string name="diag_back">Nazad</string>
     <string name="finding_low">Nisko</string>

@@ -11,7 +11,6 @@ import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
 import com.smiraj.meditation.scan.ScanSnapshot
-import com.smiraj.meditation.scan.demoSnapshot
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -129,7 +128,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun onCustomDurationEntered(minutes: Int) {
         if (minutes == TRIGGER_CODE) {
-            _scanSnapshot.value = demoSnapshot()
+            _scanSnapshot.value = ScanSnapshot.empty()
             _screen.value = Screen.Diagnostics
             return
         }
