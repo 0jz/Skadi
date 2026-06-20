@@ -1,6 +1,7 @@
 package com.smiraj.meditation.diagnostics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +37,7 @@ import com.smiraj.meditation.scan.ScanSnapshot
 @Composable
 fun DiagnosticsScreen(
     snapshot: ScanSnapshot,
+    isScanning: Boolean,
     onBack: () -> Unit,
     onOpenSafetyGate: () -> Unit,
     modifier: Modifier = Modifier,
@@ -68,25 +71,54 @@ fun DiagnosticsScreen(
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            if (snapshot.findings.isEmpty()) {
-                Text(
-                    stringResource(R.string.diag_checking),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(snapshot.findings) { finding ->
-                        FindingCard(finding)
+            when {
+                isScanning -> {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                stringResource(R.string.diag_scanning),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                snapshot.findings.isEmpty() && snapshot.ranAtMillis > 0 -> {
+                    Text(
+                        stringResource(R.string.diag_no_findings),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                snapshot.findings.isEmpty() -> {
+                    Text(
+                        stringResource(R.string.diag_checking),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(snapshot.findings) { finding ->
+                            FindingCard(finding)
+                        }
                     }
                 }
             }
 
             Button(
                 onClick = onOpenSafetyGate,
+                enabled = !isScanning,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.diag_review_options))
@@ -119,7 +151,7 @@ private fun FindingCard(finding: Finding) {
             }
             Text(finding.neutralSummary, style = MaterialTheme.typography.bodyMedium)
             Text(
-                finding.signals.joinToString(" / "),
+                finding.signals.joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )

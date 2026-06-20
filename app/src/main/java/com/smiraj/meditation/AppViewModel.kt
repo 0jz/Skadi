@@ -10,9 +10,13 @@ import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
+import com.smiraj.meditation.scan.AppsSection
 import com.smiraj.meditation.scan.LeciReport
+import com.smiraj.meditation.scan.LocationSection
+import com.smiraj.meditation.scan.PackageScanner
 import com.smiraj.meditation.scan.PreflightResult
 import com.smiraj.meditation.scan.ScanSnapshot
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The breathing animation phase, derived from elapsed time. */
 enum class BreathPhase { IN, OUT }
@@ -40,6 +45,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = SessionRepository(AppDatabase.get(app).sessionDao())
     private val settingsStore = SettingsStore(app)
+    private val packageScanner = PackageScanner(app)
 
     val sessions: StateFlow<List<Session>> =
         repo.sessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -57,6 +63,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
     val scanSnapshot: StateFlow<ScanSnapshot> = _scanSnapshot.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
     private val _leciReport = MutableStateFlow(LeciReport.demo())
     val leciReport: StateFlow<LeciReport> = _leciReport.asStateFlow()
 
@@ -72,7 +81,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exitToCover() {
         _screen.value = Screen.Meditation
         _safetyMode.value = SafetyMode.Heal
-        // Clear sensitive in-memory state on exit
         _scanSnapshot.value = ScanSnapshot.empty()
         _leciReport.value = LeciReport.demo()
     }
@@ -86,17 +94,59 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Called when the user confirms the safety gate.
-     *
-     * Runs a preflight check before showing the report.
-     * If preflight detects a blocking risk, navigates to [Screen.PreflightBlocked]
-     * instead of [Screen.Safety] — the report is never shown in that case.
-     *
-     * Real preflight detection is added in feature/real-scanner-special-access.
+     * Triggered when the user enters the secret code.
+     * Resets state and runs the package scanner in the background so results
+     * are ready by the time the user reaches the Safety screen.
+     */
+    fun enterDiagnostics() {
+        _scanSnapshot.value = ScanSnapshot.empty()
+        _leciReport.value = LeciReport.demo()
+        _screen.value = Screen.Diagnostics
+        launchScan()
+    }
+
+    private fun launchScan() {
+        viewModelScope.launch {
+            _isScanning.value = true
+            val findings = withContext(Dispatchers.Default) {
+                packageScanner.scan()
+            }
+            _scanSnapshot.value = ScanSnapshot(
+                findings = findings,
+                ranAtMillis = System.currentTimeMillis(),
+            )
+            _isScanning.value = false
+        }
+    }
+
+    /**
+     * Runs preflight then opens the report.
+     * Builds LeciReport from current scan results before navigating.
      */
     fun confirmSafetyGate() {
         val preflight = runPreflight()
-        _leciReport.value = LeciReport.demo().copy(preflight = preflight)
+        val snapshot = _scanSnapshot.value
+
+        // Build AppsSection from real scan results
+        val appsSection = AppsSection(
+            findings = snapshot.findings,
+            ready = snapshot.ranAtMillis > 0,
+        )
+
+        // LocationSection: derive app names with location permission from findings
+        val locationApps = snapshot.findings
+            .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
+            .map { it.appName }
+        val locationSection = LocationSection(
+            appsWithLocation = locationApps,
+            ready = snapshot.ranAtMillis > 0,
+        )
+
+        _leciReport.value = LeciReport.demo().copy(
+            preflight = preflight,
+            apps = appsSection,
+            location = locationSection,
+        )
 
         _screen.value = when (preflight) {
             PreflightResult.BlockedByAccessibilityRisk -> Screen.PreflightBlocked
@@ -105,15 +155,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Placeholder preflight check.
-     *
-     * Returns [PreflightResult.Clear] until feature/real-scanner-special-access
-     * adds real Accessibility, NotificationListener, DeviceAdmin, and UsageAccess checks.
+     * Placeholder preflight — returns Clear until feature/real-scanner-special-access
+     * adds real Accessibility / NotificationListener / DeviceAdmin checks.
      */
     private fun runPreflight(): PreflightResult {
-        // TODO(feature/real-scanner-special-access): check AccessibilityManager,
-        //   NotificationListenerService, DeviceAdminReceiver, UsageStatsManager access.
-        //   If any suspicious interactive-control access is active, return BlockedByAccessibilityRisk.
+        // TODO(feature/real-scanner-special-access)
         return PreflightResult.Clear
     }
 
@@ -122,11 +168,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
-        /**
-         * Default out-of-range secret code for the "Prilagodi" field. A real
-         * session is coerced to at least 1 minute, so 0 cannot collide with the
-         * cover app's normal behavior.
-         */
         const val TRIGGER_CODE = 0
     }
 
@@ -137,18 +178,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _timer.value = TimerState(plannedMin = minutes, totalSec = minutes * 60, remainingSec = minutes * 60)
     }
 
-    /**
-     * SINGLE FUNNEL for the custom-duration field. Every custom value the user
-     * types arrives here, parsed to minutes.
-     */
     fun onCustomDurationEntered(minutes: Int) {
         if (minutes == TRIGGER_CODE) {
-            _scanSnapshot.value = ScanSnapshot.empty()
-            _leciReport.value = LeciReport.demo()
-            _screen.value = Screen.Diagnostics
+            enterDiagnostics()
             return
         }
-
         val safe = minutes.coerceIn(1, 180)
         selectPreset(safe)
         start()

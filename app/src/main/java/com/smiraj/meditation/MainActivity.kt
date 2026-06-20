@@ -94,8 +94,10 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
         Screen.Diagnostics -> {
             BackHandler { vm.exitToCover() }
             val snapshot by vm.scanSnapshot.collectAsStateWithLifecycle()
+            val isScanning by vm.isScanning.collectAsStateWithLifecycle()
             DiagnosticsScreen(
                 snapshot = snapshot,
+                isScanning = isScanning,
                 onBack = vm::exitToCover,
                 onOpenSafetyGate = vm::openSafetyGate,
             )
