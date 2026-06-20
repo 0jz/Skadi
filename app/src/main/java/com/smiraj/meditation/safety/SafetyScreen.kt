@@ -55,6 +55,7 @@ import com.smiraj.meditation.scan.DeviceSection
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.LeciReport
+import com.smiraj.meditation.scan.LocationFinding
 import com.smiraj.meditation.scan.LocationSection
 import com.smiraj.meditation.scan.PreflightResult
 
@@ -157,6 +158,7 @@ fun SafetyScreen(
                             csvImporting = csvImporting,
                             onLoadDemoCsv = onLoadDemoCsv,
                             onImportCsv = onImportCsv,
+                            locationFindings = report.location.familyFindings,
                         )
                     }
                 }
@@ -354,15 +356,85 @@ private fun maskUsername(username: String): String {
 @Composable
 private fun LocationContent(section: LocationSection) {
     if (!section.ready) { PlaceholderText(stringResource(R.string.leci_location_not_ready)); return }
-    if (section.appsWithLocation.isEmpty()) {
+
+    // ---- Apps with location permission (from real scanner) -----------------
+    if (section.appsWithLocation.isNotEmpty()) {
+        Text(stringResource(R.string.leci_location_apps_header),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(4.dp))
+        section.appsWithLocation.forEach { appName ->
+            Text("• $appName", style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else {
         Text(stringResource(R.string.leci_location_no_apps),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        return
     }
-    section.appsWithLocation.forEach { appName ->
-        Text("• $appName", style = MaterialTheme.typography.bodyMedium,
+
+    // ---- Guided family/account findings ------------------------------------
+    if (section.familyFindings.isNotEmpty()) {
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(R.string.leci_location_family_header),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(4.dp))
+        section.familyFindings.forEach { LocationFindingRow(it) }
+    }
+
+    // ---- Coarsened-location message template --------------------------------
+    if (section.coarsenedMessage != null) {
+        Spacer(Modifier.height(12.dp))
+        LocationMessageCard(section.coarsenedMessage)
+    }
+}
+
+@Composable
+private fun LocationFindingRow(finding: LocationFinding) {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(finding.label,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            SeverityChip(finding.severity)
+        }
+        Text(finding.description,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedButton(
+            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(finding.actionUrl))) },
+            modifier = Modifier.padding(top = 2.dp),
+        ) {
+            Icon(Icons.Filled.OpenInBrowser, contentDescription = null,
+                modifier = Modifier.padding(end = 6.dp))
+            Text(stringResource(R.string.location_check_settings))
+        }
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun LocationMessageCard(message: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.leci_location_message_title),
+                style = MaterialTheme.typography.labelMedium)
+            Text(message, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.leci_location_message_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+        }
     }
 }
 
@@ -399,6 +471,7 @@ private fun CutPanel(
     csvImporting: Boolean,
     onLoadDemoCsv: () -> Unit,
     onImportCsv: (Uri) -> Unit,
+    locationFindings: List<LocationFinding> = emptyList(),
 ) {
     val context = LocalContext.current
     val csvLauncher = rememberLauncherForActivityResult(
@@ -547,6 +620,60 @@ private fun CutPanel(
                             Icon(Icons.Filled.FileOpen, contentDescription = null,
                                 modifier = Modifier.padding(end = 6.dp))
                             Text(stringResource(R.string.csv_import))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Location / family sharing card -----------------------------------
+    if (locationFindings.isNotEmpty()) {
+        val context = LocalContext.current
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.cut_location_title),
+                    style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.cut_location_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                listOf(
+                    R.string.cut_location_step_maps,
+                    R.string.cut_location_step_family,
+                    R.string.cut_location_step_findmy,
+                    R.string.cut_location_step_carrier,
+                ).forEachIndexed { index, label ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top) {
+                        Text("${index + 1}.", style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(label), style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f))
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.cut_location_family_account_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.cut_location_family_account_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                locationFindings.forEach { finding ->
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(finding.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(finding.actionUrl)))
+                        }) {
+                            Text(stringResource(R.string.location_check_settings),
+                                style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }

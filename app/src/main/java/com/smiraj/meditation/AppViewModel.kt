@@ -19,6 +19,7 @@ import com.smiraj.meditation.scan.DeviceCheckItem
 import com.smiraj.meditation.scan.DeviceSection
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.LeciReport
+import com.smiraj.meditation.scan.LocationAudit
 import com.smiraj.meditation.scan.LocationSection
 import com.smiraj.meditation.scan.PackageScanner
 import com.smiraj.meditation.scan.PreflightResult
@@ -157,7 +158,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // Accounts: start with demo entries visible immediately.
             // CSV import via loadDemoCsv() / importCsvFromUri() merges additional entries.
             accounts = AccountsSection(entries = AccountAudit.demoAccounts(), ready = true),
-            location = LocationSection(appsWithLocation = locationApps, ready = snapshot.ranAtMillis > 0),
+            location = LocationSection(
+                appsWithLocation = locationApps,
+                familyFindings = LocationAudit.demoFindings(),
+                coarsenedMessage = LocationAudit.coarsenedMessage(),
+                ready = true,
+            ),
             device = DeviceSection(checkItems = buildDeviceCheckItems(specialAccess), ready = true),
         )
 

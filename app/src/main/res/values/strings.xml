@@ -104,6 +104,23 @@
     <string name="cut_accounts_import_prompt">Uvezi CSV iz menadžera lozinki da vidiš naloge sa slabim lozinkama.</string>
     <string name="cut_accounts_all_strong">Sve uvezene lozinke su jake. Dobro urađeno.</string>
 
+    <!-- Location section -->
+    <string name="leci_location_apps_header">Aplikacije sa pristupom lokaciji</string>
+    <string name="leci_location_family_header">Deljenje lokacije putem naloga i porodičnih usluga</string>
+    <string name="leci_location_message_title">Poruka za osobu od poverenja (prilagodi pre slanja)</string>
+    <string name="leci_location_message_hint">Šalje samo okvirnu lokaciju — ne tačnu adresu.</string>
+    <string name="location_check_settings">Proveri podešavanja</string>
+
+    <!-- Seči: location card -->
+    <string name="cut_location_title">Lokacija i porodično deljenje</string>
+    <string name="cut_location_hint">Isključi deljenje lokacije ručno, pre nego što upozoriš napadača.</string>
+    <string name="cut_location_step_maps">Google Maps → tvoja slika → Deljenje lokacije → isključi sve.</string>
+    <string name="cut_location_step_family">Google nalog → Porodica → ukloni sebe iz grupe ako napadač kontroliše nalog vlasnika.</string>
+    <string name="cut_location_step_findmy">Find My Device / Find My (Apple) → isključi deljenje sa svim nepoznatim uređajima.</string>
+    <string name="cut_location_step_carrier">Kontaktiraj mobilnog operatera i proveri ko ima administratorski pristup ugovoru.</string>
+    <string name="cut_location_family_account_title">Ako napadač kontroliše porodični nalog</string>
+    <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga: izvezi bitne podatke (kontakte, fotografije, kalendar), pripremi novi nalog i koordiniši sa osobom od poverenja.</string>
+
     <!-- Resource panel -->
     <string name="resources_title">Hitni kontakti</string>
     <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
