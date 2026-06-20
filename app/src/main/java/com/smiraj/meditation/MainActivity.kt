@@ -110,16 +110,13 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
             val context = LocalContext.current
             val snapshot by vm.scanSnapshot.collectAsStateWithLifecycle()
             val mode by vm.safetyMode.collectAsStateWithLifecycle()
-            val generatedPassword by vm.generatedPassword.collectAsStateWithLifecycle()
             val healSnapshotPrepared by vm.healSnapshotPrepared.collectAsStateWithLifecycle()
             SafetyScreen(
                 snapshot = snapshot,
                 mode = mode,
-                generatedPassword = generatedPassword,
                 healSnapshotPrepared = healSnapshotPrepared,
                 onModeChange = vm::setSafetyMode,
                 onPrepareHealSnapshot = vm::prepareHealSnapshot,
-                onRegeneratePassword = vm::regeneratePassword,
                 onCallAstra = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:0117850000"))) },
                 onCallPolice = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:192"))) },
                 onBack = vm::exitToCover,

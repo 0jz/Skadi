@@ -58,9 +58,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _safetyMode = MutableStateFlow(SafetyMode.Heal)
     val safetyMode: StateFlow<SafetyMode> = _safetyMode.asStateFlow()
 
-    private val _generatedPassword = MutableStateFlow(generatePassword())
-    val generatedPassword: StateFlow<String> = _generatedPassword.asStateFlow()
-
     private val _healSnapshotPrepared = MutableStateFlow(false)
     val healSnapshotPrepared: StateFlow<Boolean> = _healSnapshotPrepared.asStateFlow()
 
@@ -94,10 +91,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun prepareHealSnapshot() {
         _healSnapshotPrepared.value = true
-    }
-
-    fun regeneratePassword() {
-        _generatedPassword.value = generatePassword()
     }
 
     companion object {
@@ -184,16 +177,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setKeepScreenOn(value: Boolean) {
         viewModelScope.launch { settingsStore.setKeepScreenOn(value) }
     }
-}
-
-private fun generatePassword(): String {
-    val lower = "abcdefghijkmnopqrstuvwxyz"
-    val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
-    val digits = "23456789"
-    val symbols = "!@#%*?"
-    val all = lower + upper + digits + symbols
-    val required = listOf(lower.random(), upper.random(), digits.random(), symbols.random())
-    return (required + List(12) { all.random() })
-        .shuffled()
-        .joinToString("")
 }

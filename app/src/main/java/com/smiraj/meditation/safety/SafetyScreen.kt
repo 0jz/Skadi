@@ -35,11 +35,9 @@ import com.smiraj.meditation.scan.ScanSnapshot
 fun SafetyScreen(
     snapshot: ScanSnapshot,
     mode: SafetyMode,
-    generatedPassword: String,
     healSnapshotPrepared: Boolean,
     onModeChange: (SafetyMode) -> Unit,
     onPrepareHealSnapshot: () -> Unit,
-    onRegeneratePassword: () -> Unit,
     onCallAstra: () -> Unit,
     onCallPolice: () -> Unit,
     onBack: () -> Unit,
@@ -87,8 +85,6 @@ fun SafetyScreen(
                         onPrepareSnapshot = onPrepareHealSnapshot,
                     )
                     SafetyMode.Cut -> CutPanel(
-                        generatedPassword = generatedPassword,
-                        onRegeneratePassword = onRegeneratePassword,
                     )
                 }
             }
@@ -161,10 +157,7 @@ private fun HealPanel(
 }
 
 @Composable
-private fun CutPanel(
-    generatedPassword: String,
-    onRegeneratePassword: () -> Unit,
-) {
+private fun CutPanel() {
     val steps = listOf(
         R.string.cut_step_document,
         R.string.cut_step_passwords,
@@ -194,16 +187,6 @@ private fun CutPanel(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                }
-            }
-            Text(stringResource(R.string.generated_password), style = MaterialTheme.typography.labelLarge)
-            Text(generatedPassword, style = MaterialTheme.typography.titleMedium)
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
-                    onClick = onRegeneratePassword,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.regenerate_password))
                 }
             }
         }

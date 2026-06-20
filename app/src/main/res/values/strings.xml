@@ -59,8 +59,6 @@
     <string name="cut_step_sessions">Izbaci tuđe sesije i proveri recovery email/broj.</string>
     <string name="cut_step_remove">Ukloni sumnjive aplikacije tek kad je plan spreman.</string>
     <string name="cut_step_support">Uskladi tajming sa osobom od poverenja ili podrškom.</string>
-    <string name="generated_password">Predlog nove jake lozinke</string>
-    <string name="regenerate_password">Nova lozinka</string>
     <string name="resources_title">Hitni kontakti</string>
     <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
     <string name="call_police">Pozovi policiju 192</string>
