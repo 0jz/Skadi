@@ -97,3 +97,11 @@ pricu:
   lozinki, nema cuvanja nalaza.
 - Roadmap: AirGuard/BLE, realni account audit vodiči, evidence export, Sapta
   integracija.
+
+## 7. Real scanner plan
+
+Dodati su planovi za sledeci sloj, bez implementacije feature koda:
+
+- `docs/REAL_SCANNER_EXECUTION_PLAN.md` - redosled branch-eva, Leči kao report,
+  Seči jačine, demo vs production scope, privatnosna pravila.
+- `docs/PITCH_DECK.md` - skeleton pitch deck-a.
