@@ -73,6 +73,9 @@
     <string name="leci_accounts_title">Nalozi i sesije</string>
     <string name="leci_accounts_not_ready">Pregled naloga dolazi u sledećoj fazi. Ručno proveri aktivne sesije na Google, Microsoft i Facebook nalozima i ukloni nepoznate uređaje.</string>
     <string name="leci_accounts_no_entries">Nema uvezenih naloga za pregled.</string>
+    <!-- %1$s = generated password -->
+    <string name="account_suggested_password">Predložena nova lozinka: %1$s</string>
+    <string name="account_open_security_page">Otvori stranicu bezbednosti</string>
 
     <!-- Section 3: Location -->
     <string name="leci_location_title">Lokacija i porodično praćenje</string>
@@ -91,6 +94,8 @@
     <string name="cut_step_sessions">Izbaci tuđe sesije i proveri recovery email/broj.</string>
     <string name="cut_step_remove">Ukloni sumnjive aplikacije tek kad je plan spreman.</string>
     <string name="cut_step_support">Uskladi tajming sa osobom od poverenja ili podrškom.</string>
+    <string name="cut_accounts_title">Promeni lozinke za ove naloge</string>
+    <string name="cut_accounts_hint">Svaka lozinka je generisana na uređaju i nikad nije poslata na mrežu. Označi nalog kao završen tek kad ga promeniš ručno na sajtu.</string>
 
     <!-- Resource panel -->
     <string name="resources_title">Hitni kontakti</string>
@@ -101,9 +106,3 @@
     <string name="diag_scanning">Skeniranje u toku&#8230;</string>
     <string name="diag_no_findings">Nisu pronađene rizične kombinacije dozvola.</string>
 </resources>
-
-<!-- Will be replaced - need to insert before 
-    <!-- Diagnostics scanning states -->
-    <string name="diag_scanning">Skeniranje u toku&#8230;</string>
-    <string name="diag_no_findings">Nisu pronađene rizične kombinacije dozvola.</string>
-</resources> -->

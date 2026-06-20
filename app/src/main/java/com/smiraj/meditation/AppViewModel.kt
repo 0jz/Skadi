@@ -10,6 +10,8 @@ import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
 import com.smiraj.meditation.safety.SafetyMode
+import com.smiraj.meditation.scan.AccountAudit
+import com.smiraj.meditation.scan.AccountsSection
 import com.smiraj.meditation.scan.AppsSection
 import com.smiraj.meditation.scan.DeviceCheckItem
 import com.smiraj.meditation.scan.DeviceSection
@@ -86,6 +88,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Meditation
         _safetyMode.value = SafetyMode.Heal
         _scanSnapshot.value = ScanSnapshot.empty()
+        // Clear sensitive report data from memory on exit
         _leciReport.value = LeciReport.demo()
     }
 
@@ -119,11 +122,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Runs real special-access preflight, then builds LeciReport from scan
-     * results and navigates to the appropriate screen.
+     * Runs real special-access preflight, then builds a full LeciReport
+     * (including demo account data) and navigates to the appropriate screen.
      *
      * If [PreflightResult.BlockedByAccessibilityRisk]: go to PreflightBlocked.
-     * Otherwise: build report and go to Safety.
+     * Otherwise: build report with all four sections and go to Safety.
      */
     fun confirmSafetyGate() {
         val specialAccess = specialAccessChecker.check()
@@ -145,6 +148,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ready = snapshot.ranAtMillis > 0,
         )
 
+        // Account audit: demo data generated offline, cleared on exitToCover()
+        val accountsSection = AccountsSection(
+            entries = AccountAudit.demoAccounts(),
+            ready = true,
+        )
+
         val locationApps = snapshot.findings
             .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
             .map { it.appName }
@@ -153,15 +162,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ready = snapshot.ranAtMillis > 0,
         )
 
-        val deviceItems = buildDeviceCheckItems(specialAccess)
         val deviceSection = DeviceSection(
-            checkItems = deviceItems,
+            checkItems = buildDeviceCheckItems(specialAccess),
             ready = true,
         )
 
         _leciReport.value = LeciReport.demo().copy(
             preflight = preflight,
             apps = appsSection,
+            accounts = accountsSection,
             location = locationSection,
             device = deviceSection,
         )
@@ -170,9 +179,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Converts [SpecialAccessChecker.Result] into [DeviceCheckItem] list
-     * for display in the Leči report DeviceSection.
-     * No destructive actions — guidance only.
+     * Converts [SpecialAccessChecker.Result] into [DeviceCheckItem] list.
+     * Guidance only — nothing is changed.
      */
     private fun buildDeviceCheckItems(
         result: SpecialAccessChecker.Result,
@@ -197,9 +205,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             )
         }
 
-        // Always add usage-access guidance (we can't read it without the permission)
+        // Usage access cannot be read without the permission — always show guidance
         items += DeviceCheckItem(
-            label = "Pristup korišćenju aplikacija",
+            label = "Pristup podacima o korišćenju",
             guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
                 "Pristup podacima o korišćenju → proveri nepoznate aplikacije.",
             severity = FindingSeverity.Low,
