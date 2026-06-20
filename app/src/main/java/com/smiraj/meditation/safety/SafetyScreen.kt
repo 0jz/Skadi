@@ -682,6 +682,45 @@ private fun CutPanel(
     }
 }
 
+    // ---- Device card -------------------------------------------------------
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.cut_device_title),
+                style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.cut_device_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            listOf(
+                R.string.cut_device_step_pin,
+                R.string.cut_device_step_biometrics,
+                R.string.cut_device_step_bluetooth,
+                R.string.cut_device_step_sim,
+            ).forEachIndexed { index, label ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top) {
+                    Text("\${index + 1}.", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f))
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.cut_device_step_factory_reset),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(10.dp))
+            }
+        }
+    }
+}
+
 // ---- Resource panel --------------------------------------------------------
 
 @Composable

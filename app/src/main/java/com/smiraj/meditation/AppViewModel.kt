@@ -15,7 +15,7 @@ import com.smiraj.meditation.scan.AccountAudit
 import com.smiraj.meditation.scan.AccountsSection
 import com.smiraj.meditation.scan.AppsSection
 import com.smiraj.meditation.scan.CsvPasswordImporter
-import com.smiraj.meditation.scan.DeviceCheckItem
+import com.smiraj.meditation.scan.DeviceAudit
 import com.smiraj.meditation.scan.DeviceSection
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.LeciReport
@@ -164,7 +164,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 coarsenedMessage = LocationAudit.coarsenedMessage(),
                 ready = true,
             ),
-            device = DeviceSection(checkItems = buildDeviceCheckItems(specialAccess), ready = true),
+            device = DeviceSection(checkItems = DeviceAudit.buildCheckItems(specialAccess), ready = true),
         )
 
         _screen.value = Screen.Safety
@@ -216,36 +216,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    // ---- Device check items ------------------------------------------------
-
-    private fun buildDeviceCheckItems(
-        result: SpecialAccessChecker.Result,
-    ): List<DeviceCheckItem> {
-        val items = mutableListOf<DeviceCheckItem>()
-        result.notificationListeners.forEach { app ->
-            items += DeviceCheckItem(
-                label = "Pristup obaveštenjima: ${app.appName}",
-                guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
-                    "Pristup obaveštenjima → ukloni ako ne prepoznaješ.",
-                severity = FindingSeverity.Medium,
-            )
-        }
-        result.deviceAdmins.forEach { app ->
-            items += DeviceCheckItem(
-                label = "Admin uređaja: ${app.appName}",
-                guidance = "Podešavanja → Bezbednost → Admin aplikacije uređaja → " +
-                    "deaktiviraj ako ne prepoznaješ.",
-                severity = FindingSeverity.Medium,
-            )
-        }
-        items += DeviceCheckItem(
-            label = "Pristup podacima o korišćenju",
-            guidance = "Podešavanja → Aplikacije → Poseban pristup → " +
-                "Pristup podacima o korišćenju → proveri nepoznate aplikacije.",
-            severity = FindingSeverity.Low,
-        )
-        return items
-    }
 
     fun setSafetyMode(mode: SafetyMode) {
         _safetyMode.value = mode
