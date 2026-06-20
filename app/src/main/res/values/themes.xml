@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Base theme; Compose drives the actual colors. This keeps the splash/window
-         background calm before Compose draws. -->
-    <style name="Theme.Smiraj" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@color/ic_launcher_background</item>
-        <item name="android:windowBackground">#F3F6F7</item>
-    </style>
-</resources>
