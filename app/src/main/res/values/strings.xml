@@ -152,6 +152,6 @@
 
     <!-- Resource panel -->
     <string name="resources_title">Hitni kontakti</string>
-    <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
-    <string name="call_police">Pozovi policiju 192</string>
+    <string name="call_astra">Info linija</string>
+    <string name="call_police">Brza linija</string>
 </resources>
