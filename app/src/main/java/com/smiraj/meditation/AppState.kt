@@ -9,14 +9,12 @@ package com.smiraj.meditation
  */
 enum class Screen {
     Meditation,
+    /** Hidden safety app — the themed 5-tab real app (SOS, Mapa, Sken, Mir, Uči). */
+    SafeApp,
     Diagnostics,
     SafetyGate,
     /** Leči/Seči report. Shown only after preflight passes. */
     Safety,
     /**
      * Shown when preflight detects a blocking accessibility risk.
-     * Displays a neutral "unavailable" message — no DV language, no report.
-     * Returns to cover on any action.
-     */
-    PreflightBlocked,
-}
+     * Displays a neutral "unavailable" message —

@@ -112,7 +112,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun enterDiagnostics() {
         _scanSnapshot.value = ScanSnapshot.empty()
         _leciReport.value = LeciReport.demo()
-        _screen.value = Screen.Diagnostics
+        _screen.value = Screen.SafeApp
+    }
+
+    /** Runs the device scan in place (used by the Sken tab) without changing screen. */
+    fun startScan() {
         launchScan()
     }
 
@@ -251,6 +255,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun start() {
         if (_timer.value.running) return
         val s = _timer.value
-        _timer.value = s.copy(running = true, remainingSec = s.totalSec, justFinished = false)
-        tickJob?.cancel()
-   
+        

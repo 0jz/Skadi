@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Smiraj</string>
+    <string name="app_name">Sunčica</string>
 
     <!-- Tabs -->
     <string name="tab_meditate">Meditiraj</string>
@@ -138,4 +138,4 @@
     <string name="cut_location_step_findmy">Find My Device / Find My (Apple) → isključi deljenje sa svim nepoznatim uređajima.</string>
     <string name="cut_location_step_carrier">Kontaktiraj mobilnog operatera i proveri ko ima administratorski pristup ugovoru.</string>
     <string name="cut_location_family_account_title">Ako napadač kontroliše porodični nalog</string>
-    <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga: 
+    <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga
