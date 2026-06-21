@@ -354,27 +354,43 @@ private fun maskUsername(username: String): String {
 private fun LocationContent(section: LocationSection) {
     if (!section.ready) { PlaceholderText(stringResource(R.string.leci_location_not_ready)); return }
 
-    val activeLocationSources = section.appsWithLocation + section.familyFindings.map { it.label }
-    if (activeLocationSources.isNotEmpty()) {
-        ActiveLocationRisk(activeLocationSources)
+    // 1. Apps CURRENTLY using location (last 5 min via AppOpsManager) — highest priority
+    if (section.activeLocationApps.isNotEmpty()) {
+        ActiveLocationRisk(
+            sources = section.activeLocationApps,
+            titleRes = R.string.leci_location_active_now_title,
+            bodyRes = R.string.leci_location_active_now_body,
+        )
         Spacer(Modifier.height(12.dp))
     }
 
+    // 2. All apps with location permission (broader — may or may not be active right now)
+    Text(
+        stringResource(R.string.leci_location_apps_header),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    Spacer(Modifier.height(4.dp))
     if (section.appsWithLocation.isNotEmpty()) {
-        Text(stringResource(R.string.leci_location_apps_header),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(4.dp))
         section.appsWithLocation.forEach { appName ->
             Text("• $appName", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.leci_location_apps_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     } else {
-        Text(stringResource(R.string.leci_location_no_apps),
+        Text(
+            stringResource(R.string.leci_location_no_apps),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 
+    // 3. Family / account-level sharing (guided findings)
     if (section.familyFindings.isNotEmpty()) {
         Spacer(Modifier.height(12.dp))
         Text(stringResource(R.string.leci_location_family_header),
@@ -384,6 +400,7 @@ private fun LocationContent(section: LocationSection) {
         section.familyFindings.forEach { LocationFindingRow(it) }
     }
 
+    // 4. Coarsened message template
     if (section.coarsenedMessage != null) {
         Spacer(Modifier.height(12.dp))
         LocationMessageCard(section.coarsenedMessage)
@@ -391,7 +408,11 @@ private fun LocationContent(section: LocationSection) {
 }
 
 @Composable
-private fun ActiveLocationRisk(sources: List<String>) {
+private fun ActiveLocationRisk(
+    sources: List<String>,
+    titleRes: Int = R.string.leci_location_active_title,
+    bodyRes: Int = R.string.leci_location_active_body,
+) {
     Surface(
         color = Color(0xFFC62828).copy(alpha = 0.14f),
         contentColor = Color(0xFFC62828),
@@ -405,15 +426,12 @@ private fun ActiveLocationRisk(sources: List<String>) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.leci_location_active_title),
+                Text(stringResource(titleRes),
                     style = MaterialTheme.typography.labelMedium)
                 SeverityChip(FindingSeverity.High)
             }
             Text(
-                stringResource(
-                    R.string.leci_location_active_body,
-                    sources.joinToString(", "),
-                ),
+                stringResource(bodyRes, sources.joinToString(", ")),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -714,34 +732,4 @@ private fun CutPanel(
 private fun ResourcePanel(onCallAstra: () -> Unit, onCallPolice: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.resources_title), style = MaterialTheme.typography.titleMedium)
-            OutlinedButton(onClick = onCallAstra, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.call_astra))
-            }
-            OutlinedButton(onClick = onCallPolice, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.call_police))
-            }
-        }
-    }
-}
-
-// ---- Helpers ---------------------------------------------------------------
-
-@Composable
-private fun PlaceholderText(text: String) {
-    Text(text = text, style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun SeverityChip(severity: FindingSeverity) {
-    val (label, color) = when (severity) {
-        FindingSeverity.Low    -> stringResource(R.string.risk_low)    to Color(0xFF2E7D32)
-        FindingSeverity.Medium -> stringResource(R.string.risk_medium) to Color(0xFFF9A825)
-        FindingSeverity.High   -> stringResource(R.string.risk_high)   to Color(0xFFC62828)
-    }
-    Surface(color = color.copy(alpha = 0.14f), contentColor = color, shape = MaterialTheme.shapes.small) {
-        Text(text = label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall)
-    }
-}
+          

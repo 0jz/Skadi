@@ -1,5 +1,9 @@
 package com.smiraj.meditation.scan
 
+import android.app.AppOpsManager
+import android.content.Context
+import android.os.Build
+
 /**
  * Guided location-exposure findings and a coarsened-location message template.
  *
@@ -56,12 +60,9 @@ object LocationAudit {
     )
 
     /**
-     * A coarsened-location message the user can send to a trusted person.
-     * Gives approximate whereabouts without revealing the exact address,
-     * helping the user maintain safety check-ins without exposing GPS position.
+     * Returns display names of apps that have accessed location in the last [windowMinutes]
+     * minutes, using AppOpsManager. No extra permissions required.
      *
-     * This is a template — the user should edit it before sending.
-     */
-    fun coarsenedMessage(): String =
-        "Trenutno sam u centru grada i u redu sam. Javim ti se večeras do 20h."
-}
+     * "Currently using" is defined as: last location op within the recent window.
+     * On Android 10+ we use the typed access-time API; on older we fall back to getTime().
+   

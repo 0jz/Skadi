@@ -8,6 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
+import com.smiraj.meditation.safety.BiometricGate
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -47,7 +49,7 @@ import com.smiraj.meditation.safety.SafetyScreen
 import com.smiraj.meditation.settings.SettingsScreen
 import com.smiraj.meditation.ui.theme.SmirajTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -71,7 +73,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
     val view = LocalView.current
 
     LaunchedEffect(screen) {
-        val window = (view.context as? ComponentActivity)?.window ?: return@LaunchedEffect
+        val window = (view.context as? FragmentActivity)?.window ?: return@LaunchedEffect
         if (screen == Screen.Meditation) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         } else {
@@ -155,6 +157,20 @@ private fun CoverApp(vm: AppViewModel) {
     val context = LocalContext.current
     val ambientPlayer = remember { AmbientPlayer(context) }
 
+    // Biometric anchor: intercept the secret trigger code and gate it behind
+    // fingerprint/PIN before calling enterDiagnostics().
+    val onCustomDurationEntered: (Int) -> Unit = { minutes ->
+        if (minutes == AppViewModel.TRIGGER_CODE) {
+            BiometricGate.prompt(
+                activity = context as FragmentActivity,
+                onSuccess = { vm.enterDiagnostics() },
+                onCancel = { /* user cancelled — stay on cover silently */ },
+            )
+        } else {
+            vm.onCustomDurationEntered(minutes)
+        }
+    }
+
     LaunchedEffect(timer.running, settings.ambient) {
         if (timer.running && settings.ambient != Ambient.NONE) {
             ambientPlayer.play(settings.ambient)
@@ -166,7 +182,7 @@ private fun CoverApp(vm: AppViewModel) {
     val view = LocalView.current
     LaunchedEffect(timer.running, settings.keepScreenOn) {
         val keep = timer.running && settings.keepScreenOn
-        val window = (view.context as? ComponentActivity)?.window ?: return@LaunchedEffect
+        val window = (view.context as? FragmentActivity)?.window ?: return@LaunchedEffect
         if (keep) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
@@ -183,29 +199,4 @@ private fun CoverApp(vm: AppViewModel) {
                     )
                 }
             }
-        }
-    ) { inner ->
-        val contentModifier = Modifier.fillMaxSize().padding(inner)
-        when (tab) {
-            Tab.Meditate -> MeditationScreen(
-                timer = timer,
-                onSelectPreset = vm::selectPreset,
-                onCustomDurationEntered = vm::onCustomDurationEntered,
-                onStart = vm::start,
-                onStop = vm::stop,
-                modifier = contentModifier,
-            )
-            Tab.History -> HistoryScreen(
-                sessions = sessions,
-                streak = vm.streak,
-                totalSeconds = totalSeconds,
-                modifier = contentModifier,
-            )
-            Tab.Settings -> SettingsScreen(
-                settings = settings,
-                onAmbientChange = vm::setAmbient,
-                modifier = contentModifier,
-            )
-        }
-    }
-}
+     

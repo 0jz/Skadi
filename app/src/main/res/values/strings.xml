@@ -85,14 +85,28 @@
     <!-- Section 3: Location -->
     <string name="leci_location_title">Lokacija i porodično praćenje</string>
     <string name="leci_location_not_ready">Pregled deljenja lokacije dolazi u sledećoj fazi. Ručno proveri Google Maps → Deljenje lokacije, porodično deljenje i Find My Device podešavanja.</string>
-    <string name="leci_location_no_apps">Nisu pronađene aplikacije sa pristupom lokaciji.</string>
-    <string name="leci_location_apps_header">Aplikacije sa pristupom lokaciji</string>
+    <string name="leci_location_no_apps">Nisu pronađene aplikacije sa dozvolom za lokaciju.</string>
+    <string name="leci_location_apps_header">Sve aplikacije sa dozvolom za lokaciju</string>
+    <string name="leci_location_apps_hint">Ovo su aplikacije koje imaju dozvolu — ne znači da je sada koriste.</string>
+    <!-- Currently using location (last 5 min via AppOpsManager) -->
+    <string name="leci_location_active_now_title">Koristi lokaciju SADA</string>
+    <string name="leci_location_active_now_body">%1$s pristupila je lokaciji u poslednjih 5 minuta. Ovo je najveći rizik — provjeri pre bilo kakve akcije.</string>
+    <!-- Broader active location risk (family sharing etc.) -->
     <string name="leci_location_active_title">Ko aktivno koristi lokaciju</string>
     <string name="leci_location_active_body">%1$s. Ovo je veoma veliki rizik: neko može videti kretanje u realnom vremenu ili proveriti gde je uređaj bio pre nego što bilo šta isključiš.</string>
     <string name="leci_location_family_header">Deljenje lokacije putem naloga i porodičnih usluga</string>
     <string name="leci_location_message_title">Poruka za osobu od poverenja (prilagodi pre slanja)</string>
     <string name="leci_location_message_hint">Šalje samo okvirnu lokaciju — ne tačnu adresu.</string>
     <string name="location_check_settings">Proveri podešavanja</string>
+
+    <!-- BLE tracker scan (Diagnostics screen) -->
+    <string name="diag_ble_title">Bluetooth trackeri u blizini</string>
+    <string name="diag_ble_waiting">Čekanje na završetak skeniranja aplikacija&#8230;</string>
+    <string name="diag_ble_scanning">Skeniranje Bluetooth uređaja (10s)&#8230;</string>
+    <string name="diag_ble_none_found">Nisu pronađeni poznati trackeri u blizini.</string>
+    <string name="ble_signal_close">Blizu</string>
+    <string name="ble_signal_nearby">U blizini</string>
+    <string name="ble_signal_far">Daleko</string>
 
     <!-- Section 4: Device -->
     <string name="leci_device_title">Uređaj i fizički pristup</string>
@@ -123,17 +137,4 @@
     <string name="cut_location_family_account_title">Ako napadač kontroliše porodični nalog</string>
     <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga: izvezi bitne podatke (kontakte, fotografije, kalendar), pripremi novi nalog i koordiniši sa osobom od poverenja.</string>
 
-    <!-- Seči panel: device -->
-    <string name="cut_device_title">Uređaj i fizički pristup</string>
-    <string name="cut_device_hint">Uradi ove korake sa uređaja za koji si sigurna/siguran da nije kompromitovan.</string>
-    <string name="cut_device_step_pin">Promeni PIN/lozinku ekrana odmah. Koristi nasumičan 6-cifreni PIN, ne datum ili obrazac.</string>
-    <string name="cut_device_step_biometrics">Ukloni sve lice/otisak prsta koje ne prepoznaješ: Podešavanja → Bezbednost → Biometrika.</string>
-    <string name="cut_device_step_bluetooth">Ukloni uparene Bluetooth uređaje koje ne prepoznaješ: Podešavanja → Bluetooth → Upareni uređaji.</string>
-    <string name="cut_device_step_sim">Kontaktiraj operatera i zatraži prenos vlasništva SIM kartice na svoje ime ako je potrebno.</string>
-    <string name="cut_device_step_factory_reset">Vraćanje na fabrička podešavanja je poslednji korak — uradi ga samo kad si na bezbednom mestu i imaš backup podataka.</string>
-
-    <!-- Resource panel -->
-    <string name="resources_title">Hitni kontakti</string>
-    <string name="call_astra">Pozovi ASTRA 011/785-0000</string>
-    <string name="call_police">Pozovi policiju 192</string>
-</resources>
+    <!-- Seči 

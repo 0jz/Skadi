@@ -11,31 +11,28 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Biometric anchor: verifies device owner before entering secret layer -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!--
+        BLE tracker detection: scans for nearby AirTags, Tile, SmartTag.
+        Android 12+: BLUETOOTH_SCAN with neverForLocation (no location perm needed).
+        Pre-12: BLUETOOTH + BLUETOOTH_ADMIN (scan silently skipped if unavailable).
+    -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.Smiraj">
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.Smiraj" />
-
-        <activity-alias
-            android:name=".SmirajLauncher"
-            android:enabled="true"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-    </application>
-</manifest>
+        andro

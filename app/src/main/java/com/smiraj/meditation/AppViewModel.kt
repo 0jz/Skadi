@@ -14,6 +14,7 @@ import com.smiraj.meditation.safety.SafetyMode
 import com.smiraj.meditation.scan.AccountAudit
 import com.smiraj.meditation.scan.AccountsSection
 import com.smiraj.meditation.scan.AppsSection
+import com.smiraj.meditation.scan.BleTrackerScanner
 import com.smiraj.meditation.scan.CsvPasswordImporter
 import com.smiraj.meditation.scan.DeviceAudit
 import com.smiraj.meditation.scan.DeviceSection
@@ -55,6 +56,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsStore = SettingsStore(app)
     private val packageScanner = PackageScanner(app)
     private val specialAccessChecker = SpecialAccessChecker(app)
+    private val bleTrackerScanner = BleTrackerScanner(app)
 
     val sessions: StateFlow<List<Session>> =
         repo.sessions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -117,6 +119,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun launchScan() {
         viewModelScope.launch {
             _isScanning.value = true
+
+            // Package scan — runs on Default dispatcher, typically <1s
             val findings = withContext(Dispatchers.Default) {
                 packageScanner.scan()
             }
@@ -125,6 +129,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 ranAtMillis = System.currentTimeMillis(),
             )
             _isScanning.value = false
+
+            // BLE tracker scan — async 10-second window, updates snapshot when done
+            if (bleTrackerScanner.isAvailable()) {
+                bleTrackerScanner.scan { trackers ->
+                    _scanSnapshot.value = _scanSnapshot.value.copy(
+                        bleTrackers = trackers,
+                        bleScanned = true,
+                    )
+                }
+            } else {
+                _scanSnapshot.value = _scanSnapshot.value.copy(bleScanned = true)
+            }
         }
     }
 
@@ -150,12 +166,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val locationApps = snapshot.findings
             .filter { f -> f.signals.any { it.startsWith("Lokacija") } }
             .map { it.appName }
+        val activeLocation = LocationAudit.activeLocationApps(getApplication())
 
         _leciReport.value = LeciReport.demo().copy(
             preflight = preflight,
             apps = AppsSection(findings = snapshot.findings, ready = snapshot.ranAtMillis > 0),
             accounts = AccountsSection(entries = AccountAudit.demoAccounts(), ready = true),
             location = LocationSection(
+                activeLocationApps = activeLocation,
                 appsWithLocation = locationApps,
                 familyFindings = LocationAudit.demoFindings(),
                 coarsenedMessage = LocationAudit.coarsenedMessage(),
@@ -234,39 +252,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 delay(1000)
                 val cur = _timer.value
                 if (!cur.running) return@launch
-                _timer.value = cur.copy(remainingSec = (cur.remainingSec - 1).coerceAtLeast(0))
-            }
-            finish(completed = true)
-        }
-    }
-
-    fun stop() {
-        if (!_timer.value.running) return
-        finish(completed = false)
-    }
-
-    private fun finish(completed: Boolean) {
-        val s = _timer.value
-        tickJob?.cancel()
-        tickJob = null
-        val elapsed = s.totalSec - s.remainingSec
-        if (elapsed >= 10) {
-            viewModelScope.launch { repo.record(elapsed, s.plannedMin, completed) }
-        }
-        _timer.value = s.copy(running = false, remainingSec = s.totalSec, justFinished = completed)
-    }
-
-    fun clearFinishedFlag() {
-        _timer.value = _timer.value.copy(justFinished = false)
-    }
-
-    // ---- Settings ----------------------------------------------------------
-
-    fun setAmbient(ambient: com.smiraj.meditation.data.Ambient) {
-        viewModelScope.launch { settingsStore.setAmbient(ambient) }
-    }
-
-    fun setKeepScreenOn(value: Boolean) {
-        viewModelScope.launch { settingsStore.setKeepScreenOn(value) }
-    }
-}
+                _timer.value 

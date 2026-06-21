@@ -4,15 +4,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.smiraj.meditation.R
+import com.smiraj.meditation.scan.BleTrackerFinding
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.ScanSnapshot
@@ -58,128 +63,126 @@ fun DiagnosticsScreen(
             )
         },
     ) { inner ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
-                .padding(20.dp),
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                stringResource(R.string.diag_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            item {
+                Text(
+                    stringResource(R.string.diag_subtitle),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
 
+            // ---- App permission scan results --------------------------------
             when {
                 isScanning -> {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator()
-                            Text(
-                                stringResource(R.string.diag_scanning),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                CircularProgressIndicator()
+                                Text(
+                                    stringResource(R.string.diag_scanning),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
                 snapshot.findings.isEmpty() && snapshot.ranAtMillis > 0 -> {
-                    Text(
-                        stringResource(R.string.diag_no_findings),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    item {
+                        Text(
+                            stringResource(R.string.diag_no_findings),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 snapshot.findings.isEmpty() -> {
-                    Text(
-                        stringResource(R.string.diag_checking),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    item {
+                        Text(
+                            stringResource(R.string.diag_checking),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(snapshot.findings) { finding ->
-                            FindingCard(finding)
-                        }
+                    items(snapshot.findings) { finding ->
+                        FindingCard(finding)
                     }
                 }
             }
 
-            Button(
-                onClick = onOpenSafetyGate,
-                enabled = !isScanning,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.diag_review_options))
+            // ---- BLE tracker scan results -----------------------------------
+            item {
+                BleTrackerSection(
+                    trackers = snapshot.bleTrackers,
+                    scanned = snapshot.bleScanned,
+                    appScanDone = !isScanning,
+                )
             }
+
+            item {
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = onOpenSafetyGate,
+                    enabled = !isScanning,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.diag_review_options))
+                }
+            }
+
+            item { Spacer(Modifier.height(8.dp)) }
         }
     }
 }
 
+// ---- BLE tracker section ---------------------------------------------------
+
 @Composable
-private fun FindingCard(finding: Finding) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun BleTrackerSection(
+    trackers: List<BleTrackerFinding>,
+    scanned: Boolean,
+    appScanDone: Boolean,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(),
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(finding.appName, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        finding.packageName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                SeverityBadge(finding.severity)
+                Icon(
+                    Icons.Filled.Bluetooth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    stringResource(R.string.diag_ble_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
-            Text(finding.neutralSummary, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                finding.signals.joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
-}
 
-@Composable
-private fun SeverityBadge(severity: FindingSeverity) {
-    val label = when (severity) {
-        FindingSeverity.Low -> stringResource(R.string.finding_low)
-        FindingSeverity.Medium -> stringResource(R.string.finding_medium)
-        FindingSeverity.High -> stringResource(R.string.finding_high)
-    }
-    val color = when (severity) {
-        FindingSeverity.Low -> Color(0xFF2E7D32)
-        FindingSeverity.Medium -> Color(0xFFF9A825)
-        FindingSeverity.High -> Color(0xFFC62828)
-    }
-    Surface(
-        color = color.copy(alpha = 0.14f),
-        contentColor = color,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-        )
-    }
-}
+            when {
+                !appScanDone -> {
+                    // Wait for pac

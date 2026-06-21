@@ -76,7 +76,12 @@ data class AccountEntry(
 // ---- Section 3: Location and family sharing --------------------------------
 
 data class LocationSection(
-    /** Apps detected with a location permission by the package scanner. */
+    /**
+     * Apps that have accessed location in the last 5 minutes (via AppOpsManager).
+     * Shown at the top of the location section as the highest-priority risk.
+     */
+    val activeLocationApps: List<String> = emptyList(),
+    /** All apps that have location permission (from package scanner). */
     val appsWithLocation: List<String>,
     /** Guided findings for shared-account / family-sharing location exposure. */
     val familyFindings: List<LocationFinding> = emptyList(),
@@ -106,13 +111,4 @@ data class DeviceCheckItem(
 /**
  * A single guided location-exposure finding.
  *
- * These cover the most common non-malware location-access vectors:
- * shared accounts, family-sharing features, and carrier-level access.
- */
-data class LocationFinding(
-    val label: String,
-    val description: String,
-    val severity: FindingSeverity,
-    /** Provider settings page — opened manually by the user. */
-    val actionUrl: String,
-)
+ * These c
