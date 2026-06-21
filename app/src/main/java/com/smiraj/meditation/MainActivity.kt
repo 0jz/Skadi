@@ -102,16 +102,18 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                         .onFailure {
                             Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
                         }
+                    Unit
                 } else {
                     Toast.makeText(context, "SMS dozvola nije odobrena", Toast.LENGTH_SHORT).show()
                 }
             }
-            val sendEmergencySms = {
+            val sendEmergencySms: () -> Unit = {
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
                     runCatching { EmergencySms.sendToEmergencyContact() }
                         .onFailure {
                             Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
                         }
+                    Unit
                 } else {
                     smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
                 }
