@@ -158,3 +158,46 @@ Changed:
   but are no longer wired into the primary navigation; can be removed for a clean tree.
 - Build was verified statically (this environment has no Android SDK). Run a Gradle build
   in Android Studio to confirm green.
+---
+
+## 10. Hackathon demo updates — PIN, SOS, map, widget
+
+Implemented for the final hackathon flow:
+
+- **Launch PIN gate:** app now opens to a PIN screen. PIN `0` enters the real hidden
+  Sunčica app. Any other non-empty PIN opens the functional weather decoy.
+- **Weather decoy:** the old double-tap temperature entry was removed from routing; the
+  fake app is now reached through the wrong-PIN path.
+- **SOS hold flow:** the hidden SOS tab now uses a real press/release interaction on the
+  emergency ring. Releasing it opens a 5-second cancel screen. PIN `0` cancels; any other
+  input or timeout moves to a false black screen.
+- **Interactive mock risk map:** added clickable mock safety zones for Belgrade areas,
+  search by district/place, selected-zone details, risk level, and safe-route advice.
+  This is functional demo data, not Mapbox/live backend data.
+- **Android widget:** added a home-screen widget with weather cover styling. Tapping the
+  widget opens the app/PIN gate; `112` opens the emergency dialer; `SOS` opens the ASTRA
+  support dialer (`0800 100 600`).
+
+Verification note:
+
+- `gradlew.bat` is missing from the repo and local `gradle` is not on PATH, so CLI build
+  could not be run in this shell. Run `assembleDebug` from Android Studio, or add the
+  Gradle wrapper and run `./gradlew assembleDebug`.
+
+---
+
+## 11. Emergency SMS contact
+
+Added a central manual emergency contact config:
+
+- `emergency/EmergencyContact.kt` stores the contact name, phone number, and SMS body.
+  Replace `PHONE` with the real trusted contact before demo/use.
+- `emergency/EmergencySms.kt` sends that SMS through Android `SmsManager`.
+- Manifest now requests `SEND_SMS`.
+- Hidden SOS contact list now includes a direct `SMS` row for the emergency contact.
+  The first tap requests SMS permission if needed; after permission is granted it sends
+  the configured SOS message.
+- SOS timeout flow now calls the same SMS sender before moving to the false black screen.
+- Widget `SMS` button uses the same emergency contact. If SMS permission is already
+  granted, it sends directly; otherwise it opens the SMS composer with the contact and
+  message filled in.

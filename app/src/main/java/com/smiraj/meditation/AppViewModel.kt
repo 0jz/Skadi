@@ -68,7 +68,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _timer = MutableStateFlow(TimerState())
     val timer: StateFlow<TimerState> = _timer.asStateFlow()
 
-    private val _screen = MutableStateFlow(Screen.Meditation)
+    private val _screen = MutableStateFlow(Screen.PinGate)
     val screen: StateFlow<Screen> = _screen.asStateFlow()
 
     private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
@@ -93,8 +93,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Hidden-layer navigation ------------------------------------------
 
+    fun submitLaunchPin(pin: String) {
+        if (pin.trim() == TRIGGER_CODE.toString()) {
+            enterDiagnostics()
+        } else {
+            exitToCover()
+        }
+    }
+
+    fun lockToPinGate() {
+        wipeSensitiveState()
+        _screen.value = Screen.PinGate
+    }
+
     fun exitToCover() {
         _screen.value = Screen.Meditation
+        wipeSensitiveState()
+    }
+
+    private fun wipeSensitiveState() {
         _safetyMode.value = SafetyMode.Heal
         _scanSnapshot.value = ScanSnapshot.empty()
         // Wipe sensitive report data (account entries, passwords) from memory
@@ -113,6 +130,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _scanSnapshot.value = ScanSnapshot.empty()
         _leciReport.value = LeciReport.demo()
         _screen.value = Screen.SafeApp
+    }
+
+    fun triggerEmergencyBlackout() {
+        _screen.value = Screen.Blackout
     }
 
     /** Runs the device scan in place (used by the Sken tab) without changing screen. */
@@ -255,4 +276,46 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun start() {
         if (_timer.value.running) return
         val s = _timer.value
-        
+        _timer.value = s.copy(running = true, remainingSec = s.totalSec, justFinished = false)
+        tickJob?.cancel()
+        tickJob = viewModelScope.launch {
+            while (_timer.value.remainingSec > 0) {
+                delay(1000)
+                val cur = _timer.value
+                if (!cur.running) return@launch
+                _timer.value = cur.copy(remainingSec = (cur.remainingSec - 1).coerceAtLeast(0))
+            }
+            finish(completed = true)
+        }
+    }
+
+    fun stop() {
+        if (!_timer.value.running) return
+        finish(completed = false)
+    }
+
+    private fun finish(completed: Boolean) {
+        val s = _timer.value
+        tickJob?.cancel()
+        tickJob = null
+        val elapsed = s.totalSec - s.remainingSec
+        if (elapsed >= 10) {
+            viewModelScope.launch { repo.record(elapsed, s.plannedMin, completed) }
+        }
+        _timer.value = s.copy(running = false, remainingSec = s.totalSec, justFinished = completed)
+    }
+
+    fun clearFinishedFlag() {
+        _timer.value = _timer.value.copy(justFinished = false)
+    }
+
+    // ---- Settings ----------------------------------------------------------
+
+    fun setAmbient(ambient: com.smiraj.meditation.data.Ambient) {
+        viewModelScope.launch { settingsStore.setAmbient(ambient) }
+    }
+
+    fun setKeepScreenOn(value: Boolean) {
+        viewModelScope.launch { settingsStore.setKeepScreenOn(value) }
+    }
+}

@@ -3,8 +3,12 @@ package com.smiraj.meditation.suncica
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,20 +22,27 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smiraj.meditation.emergency.EmergencyContact
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.ScanSnapshot
@@ -66,6 +77,8 @@ fun SafeApp(
     scanSnapshot: ScanSnapshot,
     onScan: () -> Unit,
     onDial: (String) -> Unit,
+    onSendEmergencyMessage: () -> Unit,
+    onEmergency: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selected by remember { mutableIntStateOf(0) }
@@ -74,8 +87,8 @@ fun SafeApp(
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             Box(Modifier.weight(1f)) {
                 when (selected) {
-                    0 -> SosTab(onDial)
-                    1 -> MapaTab()
+                    0 -> SosTab(onDial, onSendEmergencyMessage, onEmergency)
+                    1 -> InteractiveMapaTab()
                     2 -> SkenTab(isScanning, scanSnapshot, onScan)
                     3 -> MirTab(onDial)
                     else -> UciTab()
@@ -97,8 +110,20 @@ private fun tabModifier() = Modifier
 // ---- SOS (R1) -------------------------------------------------------------
 
 @Composable
-private fun SosTab(onDial: (String) -> Unit) {
-    Column(tabModifier()) {
+private fun SosTab(
+    onDial: (String) -> Unit,
+    onSendEmergencyMessage: () -> Unit,
+    onEmergency: () -> Unit,
+) {
+    var showCancel by remember { mutableStateOf(false) }
+
+    if (showCancel) {
+        EmergencyCancelOverlay(
+            onCancel = { showCancel = false },
+            onEmergency = onEmergency,
+        )
+    } else {
+        Column(tabModifier()) {
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -121,7 +146,7 @@ private fun SosTab(onDial: (String) -> Unit) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("DRŽI ZA POMOĆ", color = Suncica.TextMuted, fontSize = 10.sp, letterSpacing = 1.sp)
             Spacer(Modifier.height(14.dp))
-            ConcentricRings()
+            ConcentricRings(onReleased = { showCancel = true })
             Spacer(Modifier.height(12.dp))
             Text(
                 "Pritisni i drži\nza slanje upozorenja",
@@ -132,30 +157,43 @@ private fun SosTab(onDial: (String) -> Unit) {
 
         Spacer(Modifier.height(24.dp))
         FrostedCard {
+            ContactRow("SMS", "${EmergencyContact.NAME} — pošalji SOS SMS") { onSendEmergencyMessage() }
+            CardDivider()
             ContactRow("👤", "Ana — prijateljica") { }
             CardDivider()
             ContactRow("👤", "Mama") { }
             CardDivider()
             ContactRow("🏛", "Hitna — 112") { onDial("112") }
         }
+        }
     }
 }
 
 @Composable
-private fun ConcentricRings() {
+private fun ConcentricRings(onReleased: () -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
     Box(
         Modifier
             .size(130.dp)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.06f))
-            .border(0.5.dp, Suncica.CardBorder, CircleShape),
+            .border(0.5.dp, Suncica.CardBorder, CircleShape)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    pressed = true
+                    waitForUpOrCancellation()
+                    pressed = false
+                    onReleased()
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier
-                .size(104.dp)
+                .size(if (pressed) 112.dp else 104.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f))
+                .background(Color.White.copy(alpha = if (pressed) 0.16f else 0.08f))
                 .border(0.5.dp, Color.White.copy(alpha = 0.2f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
@@ -174,6 +212,66 @@ private fun ConcentricRings() {
 }
 
 @Composable
+private fun EmergencyCancelOverlay(
+    onCancel: () -> Unit,
+    onEmergency: () -> Unit,
+) {
+    var secondsLeft by remember { mutableIntStateOf(5) }
+    var pin by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        while (secondsLeft > 0) {
+            kotlinx.coroutines.delay(1000)
+            secondsLeft -= 1
+        }
+        onEmergency()
+    }
+
+    LaunchedEffect(pin) {
+        when {
+            pin == "0" -> onCancel()
+            pin.isNotEmpty() -> onEmergency()
+        }
+    }
+
+    Column(
+        tabModifier(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.height(44.dp))
+        Text("Slanje pomoći za $secondsLeft", color = Suncica.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Unesi PIN 0 da otkažeš. Svaki drugi unos nastavlja hitni protokol.",
+            color = Suncica.TextSecondary,
+            fontSize = 12.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        Spacer(Modifier.height(28.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf("0", "1", "2", "3").forEach { digit ->
+                Box(
+                    Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .border(0.5.dp, Suncica.CardBorder, CircleShape)
+                        .clickable { pin = digit },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(digit, color = Suncica.TextPrimary, fontSize = 18.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BlackoutScreen(modifier: Modifier = Modifier) {
+    Box(modifier.background(Color.Black))
+}
+
+@Composable
 private fun ContactRow(icon: String, name: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
@@ -189,6 +287,178 @@ private fun ContactRow(icon: String, name: String, onClick: () -> Unit) {
 }
 
 // ---- Mapa (R4) ------------------------------------------------------------
+
+private data class RiskArea(
+    val name: String,
+    val district: String,
+    val level: String,
+    val note: String,
+    val advice: String,
+    val color: Color,
+    val x: Float,
+    val y: Float,
+)
+
+private val RISK_AREAS = listOf(
+    RiskArea("Studentski park", "Stari grad", "Bezbedno", "Dobra osvetljenost i dosta prolaznika do 22h.", "Drži se glavnih staza i najavi dolazak osobi od poverenja.", Suncica.Safe, 0.20f, 0.24f),
+    RiskArea("Zeleni venac", "Centar", "Oprezno", "Gužva, prelazi i više prijavljenih neprijatnih dobacivanja uveče.", "Biraj osvetljenu stranu ulice i proveri prevoz pre polaska.", Suncica.Warning, 0.58f, 0.42f),
+    RiskArea("Mračni prolaz kod stanice", "Savski trg", "Rizično", "Slaba vidljivost i malo otvorenih lokala posle 21h.", "Izbegni prolaz; idi duž glavne ulice ili pozovi pratnju.", Suncica.Danger, 0.32f, 0.72f),
+    RiskArea("Bulevar kralja Aleksandra", "Vračar", "Bezbedno", "Otvorene radnje, frekventan prevoz i dobra vidljivost.", "Koristi stajališta sa više ljudi i sačuvaj bateriju.", Suncica.Safe, 0.76f, 0.22f),
+)
+
+@Composable
+private fun InteractiveMapaTab() {
+    var query by remember { mutableStateOf("") }
+    var selected by remember { mutableStateOf(RISK_AREAS[1]) }
+    val filtered = remember(query) {
+        val needle = query.trim().lowercase()
+        if (needle.isEmpty()) RISK_AREAS else RISK_AREAS.filter {
+            it.name.lowercase().contains(needle) || it.district.lowercase().contains(needle)
+        }
+    }
+
+    Column(tabModifier().verticalScroll(rememberScrollState())) {
+        Spacer(Modifier.height(12.dp))
+        ScreenHeader("Bezbednost u blizini", "Beograd, Srbija")
+        Spacer(Modifier.height(10.dp))
+        SearchBox(query = query, onQueryChange = { query = it })
+        Spacer(Modifier.height(10.dp))
+        RiskMap(
+            areas = filtered.ifEmpty { RISK_AREAS },
+            selected = selected,
+            onSelect = { selected = it },
+            modifier = Modifier.fillMaxWidth().height(250.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+        RiskDetail(selected)
+        Spacer(Modifier.height(10.dp))
+        FrostedCard {
+            val rows = filtered.take(3)
+            rows.forEachIndexed { index, area ->
+                ListRow(
+                    leading = "",
+                    title = area.name,
+                    subtitle = "${area.level} · ${area.district}",
+                    showChevron = false,
+                ) { selected = area }
+                if (index < rows.lastIndex) CardDivider()
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Legend(Suncica.Safe, "Bezbedno")
+            Legend(Suncica.Warning, "Oprezno")
+            Legend(Suncica.Danger, "Rizično")
+        }
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun SearchBox(query: String, onQueryChange: (String) -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(0.5.dp, Suncica.CardBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+    ) {
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = TextStyle(color = Suncica.TextPrimary, fontSize = 12.sp),
+            modifier = Modifier.fillMaxWidth(),
+            decorationBox = { inner ->
+                if (query.isEmpty()) {
+                    Text("Pretraži kvart ili ulicu...", color = Suncica.TextMuted, fontSize = 11.sp)
+                }
+                inner()
+            },
+        )
+    }
+}
+
+@Composable
+private fun RiskMap(
+    areas: List<RiskArea>,
+    selected: RiskArea,
+    onSelect: (RiskArea) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(
+        modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(0.5.dp, Suncica.Divider, RoundedCornerShape(12.dp)),
+    ) {
+        repeat(4) { row ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .offset(y = maxHeight * ((row + 1) / 5f))
+                    .background(Color.White.copy(alpha = 0.06f)),
+            )
+        }
+        repeat(3) { col ->
+            Box(
+                Modifier
+                    .height(maxHeight)
+                    .fillMaxWidth(0.003f)
+                    .offset(x = maxWidth * ((col + 1) / 4f))
+                    .background(Color.White.copy(alpha = 0.06f)),
+            )
+        }
+        areas.forEach { area ->
+            val isSelected = area == selected
+            Box(
+                Modifier
+                    .offset(x = maxWidth * area.x, y = maxHeight * area.y)
+                    .size(if (isSelected) 58.dp else 46.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(area.color.copy(alpha = if (isSelected) 0.62f else 0.38f))
+                    .border(
+                        if (isSelected) 2.dp else 0.5.dp,
+                        Color.White.copy(alpha = if (isSelected) 0.85f else 0.28f),
+                        RoundedCornerShape(14.dp),
+                    )
+                    .clickable { onSelect(area) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(area.level.first().toString(), color = Suncica.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Box(
+            Modifier
+                .offset(x = maxWidth * 0.48f, y = maxHeight * 0.58f)
+                .size(14.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(3.dp, Suncica.BgTop, CircleShape),
+        )
+    }
+}
+
+@Composable
+private fun RiskDetail(area: RiskArea) {
+    FrostedCard {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(area.color))
+                Spacer(Modifier.size(8.dp))
+                Text(area.name, color = Suncica.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.weight(1f))
+                Text(area.level, color = area.color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(area.note, color = Suncica.TextSecondary, fontSize = 12.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(area.advice, color = Suncica.TextMuted, fontSize = 11.sp)
+        }
+    }
+}
 
 @Composable
 private fun MapaTab() {
@@ -410,4 +680,11 @@ private fun UciTab() {
             ScreenHeader("Uči i zaštiti se", "Znanje je zaštita")
             Spacer(Modifier.height(10.dp))
             FrostedCard {
-                ARTICLES.forEach
+                ARTICLES.forEachIndexed { i, a ->
+                    ListRow(a.number, a.title, a.subtitle, leadingIsBadge = true) { selected = i }
+                    if (i < ARTICLES.lastIndex) CardDivider()
+                }
+            }
+        }
+    }
+}
