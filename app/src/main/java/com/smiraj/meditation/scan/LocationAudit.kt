@@ -1,8 +1,9 @@
 package com.smiraj.meditation.scan
 
-import android.app.AppOpsManager
+import android.Manifest
+import android.app.ActivityManager
 import android.content.Context
-import android.os.Build
+import android.content.pm.PackageManager
 
 /**
  * Guided location-exposure findings and a coarsened-location message template.
@@ -60,9 +61,8 @@ object LocationAudit {
     )
 
     /**
-     * Returns display names of apps that have accessed location in the last [windowMinutes]
-     * minutes, using AppOpsManager. No extra permissions required.
+     * Returns display names of apps that are currently running in the foreground or as a
+     * foreground service AND hold a location permission.
      *
-     * "Currently using" is defined as: last location op within the recent window.
-     * On Android 10+ we use the typed access-time API; on older we fall back to getTime().
-   
+     * Uses only public APIs (ActivityManager.getRunningAppProcesses + PackageManager.checkPermission).
+     * "Currently using location" is approxi
