@@ -4,12 +4,10 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
-import com.smiraj.meditation.safety.BiometricGate
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -157,20 +155,6 @@ private fun CoverApp(vm: AppViewModel) {
     val context = LocalContext.current
     val ambientPlayer = remember { AmbientPlayer(context) }
 
-    // Biometric anchor: intercept the secret trigger code and gate it behind
-    // fingerprint/PIN before calling enterDiagnostics().
-    val onCustomDurationEntered: (Int) -> Unit = { minutes ->
-        if (minutes == AppViewModel.TRIGGER_CODE) {
-            BiometricGate.prompt(
-                activity = context as FragmentActivity,
-                onSuccess = { vm.enterDiagnostics() },
-                onCancel = { /* user cancelled — stay on cover silently */ },
-            )
-        } else {
-            vm.onCustomDurationEntered(minutes)
-        }
-    }
-
     LaunchedEffect(timer.running, settings.ambient) {
         if (timer.running && settings.ambient != Ambient.NONE) {
             ambientPlayer.play(settings.ambient)
@@ -199,4 +183,22 @@ private fun CoverApp(vm: AppViewModel) {
                     )
                 }
             }
-     
+        }
+    ) { inner ->
+        val contentModifier = Modifier.fillMaxSize().padding(inner)
+        when (tab) {
+            Tab.Meditate -> MeditationScreen(
+                timer = timer,
+                onSelectPreset = vm::selectPreset,
+                onCustomDurationEntered = vm::onCustomDurationEntered,
+                onStart = vm::start,
+                onStop = vm::stop,
+                modifier = contentModifier,
+            )
+            Tab.History -> HistoryScreen(
+                sessions = sessions,
+                streak = vm.streak,
+                totalSeconds = totalSeconds,
+                modifier = contentModifier,
+            )
+    

@@ -1,16 +1,15 @@
 package com.smiraj.meditation.scan
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 
 /**
  * Guided location-exposure findings and a coarsened-location message template.
- *
- * All findings are simulated for the demo. They represent the most common ways
- * an abusive partner gains real-time location access via shared accounts and
- * family-sharing features — without any malware required.
  *
  * Invariant: no data is written to disk, Room, or DataStore.
  * Cleared on exitToCover() via LeciReport.demo().
@@ -60,10 +59,11 @@ object LocationAudit {
         ),
     )
 
-    /**
-     * Checks a predefined set of surveillance-relevant dangerous permissions and returns
-     * one [PermUsage] entry per permission that has at least one active foreground app.
-     *
-     * Covers: location, microphone, camera, contacts, call log, SMS, phone state,
-     * body sensors, and media.
- 
+    // Ordered map: OPSTR → human-readable Serbian label.
+    // Duplicate labels (FINE + COARSE → "Lokacija") are collapsed in output.
+    private val OP_LABELS = linkedMapOf(
+        AppOpsManager.OPSTR_FINE_LOCATION          to "Lokacija",
+        AppOpsManager.OPSTR_COARSE_LOCATION        to "Lokacija",
+        AppOpsManager.OPSTR_RECORD_AUDIO           to "Mikrofon",
+        AppOpsManager.OPSTR_CAMERA                 to "Kamera",
+        AppOpsManager.OPSTR_READ_CONTACTS          to "Kontak
