@@ -103,6 +103,14 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
         }
     }
 
+    val loadContacts: () -> Unit = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            vm.loadDeviceContacts()
+        } else {
+            permissionLauncher.launch(arrayOf(Manifest.permission.READ_CONTACTS))
+        }
+    }
+
     LaunchedEffect(screen) {
         val window = (view.context as? FragmentActivity)?.window ?: return@LaunchedEffect
         if (screen == Screen.Meditation) {
@@ -144,15 +152,6 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
             val isScanning by vm.isScanning.collectAsStateWithLifecycle()
             val emergencyContact by vm.emergencyContact.collectAsStateWithLifecycle()
             val deviceContacts by vm.deviceContacts.collectAsStateWithLifecycle()
-            LaunchedEffect(Unit) {
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.SEND_SMS,
-                        Manifest.permission.CALL_PHONE,
-                        Manifest.permission.READ_CONTACTS,
-                    ),
-                )
-            }
             SafeApp(
                 isScanning = isScanning,
                 scanSnapshot = snapshot,
@@ -162,7 +161,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                 onScan = vm::startScan,
                 onDial = callNumber,
                 onImportEmergencyContact = vm::selectEmergencyContact,
-                onLoadContacts = vm::loadDeviceContacts,
+                onLoadContacts = loadContacts,
                 onSendEmergencyMessage = sendEmergencySms,
                 onEmergency = {
                     sendEmergencySms()
