@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smiraj.meditation.emergency.EmergencyContact
+import com.smiraj.meditation.emergency.EmergencyContactInfo
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.ScanSnapshot
@@ -54,6 +54,9 @@ import com.smiraj.meditation.weather.ScreenHeader
 import com.smiraj.meditation.weather.Suncica
 import com.smiraj.meditation.weather.SuncicaBackground
 import com.smiraj.meditation.weather.SuncicaNavBar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Layer 2 — the hidden real app, themed identically to the weather decoy.
@@ -75,8 +78,13 @@ private val NAV_ITEMS = listOf(
 fun SafeApp(
     isScanning: Boolean,
     scanSnapshot: ScanSnapshot,
+    scanHistory: List<ScanSnapshot>,
+    emergencyContact: EmergencyContactInfo,
+    deviceContacts: List<EmergencyContactInfo>,
     onScan: () -> Unit,
     onDial: (String) -> Unit,
+    onImportEmergencyContact: (EmergencyContactInfo) -> Unit,
+    onLoadContacts: () -> Unit,
     onSendEmergencyMessage: () -> Unit,
     onEmergency: () -> Unit,
     modifier: Modifier = Modifier,
@@ -87,9 +95,17 @@ fun SafeApp(
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             Box(Modifier.weight(1f)) {
                 when (selected) {
-                    0 -> SosTab(onDial, onSendEmergencyMessage, onEmergency)
+                    0 -> SosTab(
+                        emergencyContact = emergencyContact,
+                        deviceContacts = deviceContacts,
+                        onDial = onDial,
+                        onImportEmergencyContact = onImportEmergencyContact,
+                        onLoadContacts = onLoadContacts,
+                        onSendEmergencyMessage = onSendEmergencyMessage,
+                        onEmergency = onEmergency,
+                    )
                     1 -> InteractiveMapaTab()
-                    2 -> SkenTab(isScanning, scanSnapshot, onScan)
+                    2 -> SkenTab(isScanning, scanSnapshot, scanHistory, onScan)
                     3 -> MirTab(onDial)
                     else -> UciTab()
                 }
@@ -111,11 +127,16 @@ private fun tabModifier() = Modifier
 
 @Composable
 private fun SosTab(
+    emergencyContact: EmergencyContactInfo,
+    deviceContacts: List<EmergencyContactInfo>,
     onDial: (String) -> Unit,
+    onImportEmergencyContact: (EmergencyContactInfo) -> Unit,
+    onLoadContacts: () -> Unit,
     onSendEmergencyMessage: () -> Unit,
     onEmergency: () -> Unit,
 ) {
     var showCancel by remember { mutableStateOf(false) }
+    var showContacts by remember { mutableStateOf(false) }
 
     if (showCancel) {
         EmergencyCancelOverlay(
@@ -157,7 +178,28 @@ private fun SosTab(
 
         Spacer(Modifier.height(24.dp))
         FrostedCard {
-            ContactRow("SMS", "${EmergencyContact.NAME} — pošalji SOS SMS") { onSendEmergencyMessage() }
+            ContactRow("SMS", "${emergencyContact.name} — pošalji SOS SMS") { onSendEmergencyMessage() }
+            CardDivider()
+            ContactRow("CALL", "${emergencyContact.name} — pozovi odmah") { onDial(emergencyContact.phone) }
+            CardDivider()
+            ContactRow("IMP", "Importuj hitni kontakt", emergencyContact.phone) {
+                onLoadContacts()
+                showContacts = !showContacts
+            }
+            if (showContacts) {
+                CardDivider()
+                if (deviceContacts.isEmpty()) {
+                    ContactRow("...", "Nema učitanih kontakata", "Dozvoli kontakte pa pokušaj opet") { onLoadContacts() }
+                } else {
+                    deviceContacts.take(6).forEach { contact ->
+                        CardDivider()
+                        ContactRow("👤", contact.name, contact.phone) {
+                            onImportEmergencyContact(contact)
+                            showContacts = false
+                        }
+                    }
+                }
+            }
             CardDivider()
             ContactRow("👤", "Ana — prijateljica") { }
             CardDivider()
@@ -242,24 +284,37 @@ private fun EmergencyCancelOverlay(
         Text("Slanje pomoći za $secondsLeft", color = Suncica.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Unesi PIN 0 da otkažeš. Svaki drugi unos nastavlja hitni protokol.",
+            "Unesi svoj PIN da otkažeš. Pogrešan PIN nastavlja hitni protokol.",
             color = Suncica.TextSecondary,
             fontSize = 12.sp,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         Spacer(Modifier.height(28.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf("0", "1", "2", "3").forEach { digit ->
-                Box(
-                    Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .border(0.5.dp, Suncica.CardBorder, CircleShape)
-                        .clickable { pin = digit },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(digit, color = Suncica.TextPrimary, fontSize = 18.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(
+                listOf("1", "2", "3"),
+                listOf("4", "5", "6"),
+                listOf("7", "8", "9"),
+                listOf("", "0", ""),
+            ).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { digit ->
+                        if (digit.isBlank()) {
+                            Spacer(Modifier.size(52.dp))
+                        } else {
+                            Box(
+                                Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.12f))
+                                    .border(0.5.dp, Suncica.CardBorder, CircleShape)
+                                    .clickable { pin = digit },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(digit, color = Suncica.TextPrimary, fontSize = 18.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -272,7 +327,7 @@ fun BlackoutScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ContactRow(icon: String, name: String, onClick: () -> Unit) {
+private fun ContactRow(icon: String, name: String, subtitle: String? = null, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -280,9 +335,15 @@ private fun ContactRow(icon: String, name: String, onClick: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(icon, fontSize = 14.sp, color = Suncica.TextSecondary)
+        Text(icon, fontSize = 13.sp, color = Suncica.TextSecondary)
         Spacer(Modifier.size(10.dp))
-        Text(name, fontSize = 12.sp, color = Suncica.TextPrimary.copy(alpha = 0.85f))
+        Column(Modifier.weight(1f)) {
+            Text(name, fontSize = 12.sp, color = Suncica.TextPrimary.copy(alpha = 0.85f))
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(Modifier.height(1.dp))
+                Text(subtitle, fontSize = 10.sp, color = Suncica.TextMuted)
+            }
+        }
     }
 }
 
@@ -534,7 +595,13 @@ private fun Legend(color: Color, label: String) {
 // ---- Sken (R6) ------------------------------------------------------------
 
 @Composable
-private fun SkenTab(isScanning: Boolean, snapshot: ScanSnapshot, onScan: () -> Unit) {
+private fun SkenTab(
+    isScanning: Boolean,
+    snapshot: ScanSnapshot,
+    scanHistory: List<ScanSnapshot>,
+    onScan: () -> Unit,
+) {
+    var showHistory by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
     Column(tabModifier().verticalScroll(scroll)) {
         Spacer(Modifier.height(12.dp))
@@ -579,12 +646,52 @@ private fun SkenTab(isScanning: Boolean, snapshot: ScanSnapshot, onScan: () -> U
         }
 
         FrostedCard {
-            ListRow("📧", "Proveri nalog", "Provale u baze podataka") { }
+            ListRow("📧", "Proveri nalog", "Plan: uvoz mejla ili CSV, zatim provera poznatih curenja", showChevron = false) { }
             CardDivider()
-            ListRow("📋", "Istorija skeniranja", "Prethodni rezultati") { }
+            ListRow("📋", "Istorija skeniranja", "${scanHistory.size} zapisa") { showHistory = !showHistory }
+            if (showHistory) {
+                CardDivider()
+                ScanHistory(scanHistory)
+            }
         }
         Spacer(Modifier.height(12.dp))
     }
+}
+
+@Composable
+private fun ScanHistory(history: List<ScanSnapshot>) {
+    if (history.isEmpty()) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Još nema skeniranja.", color = Suncica.TextMuted, fontSize = 11.sp)
+        }
+        return
+    }
+    history.forEachIndexed { index, item ->
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val high = item.findings.count { it.severity == FindingSeverity.High }
+            val medium = item.findings.count { it.severity == FindingSeverity.Medium }
+            val color = when {
+                high > 0 -> Suncica.Danger
+                medium > 0 -> Suncica.Warning
+                else -> Suncica.Safe
+            }
+            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Spacer(Modifier.size(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(formatScanTime(item.ranAtMillis), color = Suncica.TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text("${item.findings.size} nalaza · BLE ${if (item.bleScanned) "proveren" else "u toku"}", color = Suncica.TextMuted, fontSize = 10.sp)
+            }
+        }
+        if (index < history.lastIndex) CardDivider()
+    }
+}
+
+private fun formatScanTime(millis: Long): String {
+    if (millis <= 0L) return "Nepoznato vreme"
+    return SimpleDateFormat("dd.MM. HH:mm", Locale.getDefault()).format(Date(millis))
 }
 
 @Composable

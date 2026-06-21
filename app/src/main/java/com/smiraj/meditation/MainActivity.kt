@@ -93,12 +93,22 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
             BackHandler { vm.exitToCover() }
             val context = LocalContext.current
             val snapshot by vm.scanSnapshot.collectAsStateWithLifecycle()
+            val scanHistory by vm.scanHistory.collectAsStateWithLifecycle()
             val isScanning by vm.isScanning.collectAsStateWithLifecycle()
+            val emergencyContact by vm.emergencyContact.collectAsStateWithLifecycle()
+            val deviceContacts by vm.deviceContacts.collectAsStateWithLifecycle()
+            val permissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) { grants ->
+                if (grants[Manifest.permission.READ_CONTACTS] == true) {
+                    vm.loadDeviceContacts()
+                }
+            }
             val smsPermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { granted ->
                 if (granted) {
-                    runCatching { EmergencySms.sendToEmergencyContact() }
+                    runCatching { EmergencySms.sendToEmergencyContact(context) }
                         .onFailure {
                             Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
                         }
@@ -109,7 +119,7 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
             }
             val sendEmergencySms: () -> Unit = {
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
-                    runCatching { EmergencySms.sendToEmergencyContact() }
+                    runCatching { EmergencySms.sendToEmergencyContact(context) }
                         .onFailure {
                             Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
                         }
@@ -118,13 +128,37 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
                     smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
                 }
             }
+            val callNumber: (String) -> Unit = { number ->
+                val uri = Uri.parse("tel:$number")
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_CALL, uri))
+                    }.onFailure {
+                        context.startActivity(Intent(Intent.ACTION_DIAL, uri))
+                    }
+                } else {
+                    context.startActivity(Intent(Intent.ACTION_DIAL, uri))
+                }
+            }
+            LaunchedEffect(Unit) {
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.SEND_SMS,
+                        Manifest.permission.CALL_PHONE,
+                        Manifest.permission.READ_CONTACTS,
+                    ),
+                )
+            }
             SafeApp(
                 isScanning = isScanning,
                 scanSnapshot = snapshot,
+                scanHistory = scanHistory,
+                emergencyContact = emergencyContact,
+                deviceContacts = deviceContacts,
                 onScan = vm::startScan,
-                onDial = { number ->
-                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
-                },
+                onDial = callNumber,
+                onImportEmergencyContact = vm::selectEmergencyContact,
+                onLoadContacts = vm::loadDeviceContacts,
                 onSendEmergencyMessage = sendEmergencySms,
                 onEmergency = {
                     sendEmergencySms()

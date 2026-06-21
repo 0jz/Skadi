@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.smiraj.meditation.MainActivity
 import com.smiraj.meditation.R
 import com.smiraj.meditation.emergency.EmergencyContact
+import com.smiraj.meditation.emergency.EmergencyContactStore
 import com.smiraj.meditation.emergency.EmergencySms
 
 class SuncicaWidgetProvider : AppWidgetProvider() {
@@ -20,9 +21,9 @@ class SuncicaWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
         if (intent.action == ACTION_SEND_EMERGENCY_SMS) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
-                runCatching { EmergencySms.sendToEmergencyContact() }
+                runCatching { EmergencySms.sendToEmergencyContact(context) }
             } else {
-                context.startActivity(smsComposerIntent())
+                context.startActivity(smsComposerIntent(context))
             }
         }
     }
@@ -77,8 +78,9 @@ class SuncicaWidgetProvider : AppWidgetProvider() {
         )
     }
 
-    private fun smsComposerIntent(): Intent {
-        return Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${EmergencyContact.PHONE}")).apply {
+    private fun smsComposerIntent(context: Context): Intent {
+        val contact = EmergencyContactStore.get(context)
+        return Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${contact.phone}")).apply {
             putExtra("sms_body", EmergencyContact.MESSAGE)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

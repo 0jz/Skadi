@@ -16,6 +16,8 @@
 
     <!-- Sends the configured emergency SMS contact after explicit SOS action. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <!--
         BLE tracker detection: scans for nearby AirTags, Tile, SmartTag.

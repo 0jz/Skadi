@@ -2,6 +2,7 @@ package com.smiraj.meditation
 
 import android.app.Application
 import android.net.Uri
+import android.provider.ContactsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.smiraj.meditation.data.AppDatabase
@@ -10,6 +11,8 @@ import com.smiraj.meditation.data.SettingsStore
 import com.smiraj.meditation.data.SessionRepository
 import com.smiraj.meditation.data.UserSettings
 import com.smiraj.meditation.data.computeStreak
+import com.smiraj.meditation.emergency.EmergencyContactInfo
+import com.smiraj.meditation.emergency.EmergencyContactStore
 import com.smiraj.meditation.safety.SafetyMode
 import com.smiraj.meditation.scan.AccountAudit
 import com.smiraj.meditation.scan.AccountsSection
@@ -74,8 +77,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _scanSnapshot = MutableStateFlow(ScanSnapshot.empty())
     val scanSnapshot: StateFlow<ScanSnapshot> = _scanSnapshot.asStateFlow()
 
+    private val _scanHistory = MutableStateFlow<List<ScanSnapshot>>(emptyList())
+    val scanHistory: StateFlow<List<ScanSnapshot>> = _scanHistory.asStateFlow()
+
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _emergencyContact = MutableStateFlow(EmergencyContactStore.get(app))
+    val emergencyContact: StateFlow<EmergencyContactInfo> = _emergencyContact.asStateFlow()
+
+    private val _deviceContacts = MutableStateFlow<List<EmergencyContactInfo>>(emptyList())
+    val deviceContacts: StateFlow<List<EmergencyContactInfo>> = _deviceContacts.asStateFlow()
 
     private val _leciReport = MutableStateFlow(LeciReport.demo())
     val leciReport: StateFlow<LeciReport> = _leciReport.asStateFlow()
@@ -141,6 +153,48 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         launchScan()
     }
 
+    fun selectEmergencyContact(contact: EmergencyContactInfo) {
+        _emergencyContact.value = contact
+        EmergencyContactStore.save(getApplication(), contact)
+    }
+
+    fun loadDeviceContacts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val contacts = runCatching { readDeviceContacts() }.getOrDefault(emptyList())
+            _deviceContacts.value = contacts
+        }
+    }
+
+    private fun readDeviceContacts(): List<EmergencyContactInfo> {
+        val resolver = getApplication<Application>().contentResolver
+        val uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+            ContactsContract.CommonDataKinds.Phone.NUMBER,
+        )
+        val seen = mutableSetOf<String>()
+        val contacts = mutableListOf<EmergencyContactInfo>()
+        resolver.query(
+            uri,
+            projection,
+            null,
+            null,
+            "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC",
+        )?.use { cursor ->
+            val nameIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val numberIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+            while (cursor.moveToNext() && contacts.size < 50) {
+                val name = cursor.getString(nameIndex)?.trim().orEmpty()
+                val phone = cursor.getString(numberIndex)?.trim().orEmpty()
+                val key = phone.filter { it.isDigit() || it == '+' }
+                if (name.isNotBlank() && key.isNotBlank() && seen.add(key)) {
+                    contacts += EmergencyContactInfo(name, phone)
+                }
+            }
+        }
+        return contacts
+    }
+
     private fun launchScan() {
         viewModelScope.launch {
             _isScanning.value = true
@@ -150,25 +204,45 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 packageScanner.scan()
             }
             val activePerms = LocationAudit.activeAllPermApps(getApplication())
-            _scanSnapshot.value = ScanSnapshot(
+            val snapshot = ScanSnapshot(
                 findings = findings,
                 ranAtMillis = System.currentTimeMillis(),
                 activePermUsage = activePerms,
             )
+            _scanSnapshot.value = snapshot
+            rememberScan(snapshot)
             _isScanning.value = false
 
             // BLE tracker scan — async 10-second window, updates snapshot when done
             if (bleTrackerScanner.isAvailable()) {
                 bleTrackerScanner.scan { trackers ->
-                    _scanSnapshot.value = _scanSnapshot.value.copy(
+                    val updated = _scanSnapshot.value.copy(
                         bleTrackers = trackers,
                         bleScanned = true,
                     )
+                    _scanSnapshot.value = updated
+                    replaceLatestScan(updated)
                 }
             } else {
-                _scanSnapshot.value = _scanSnapshot.value.copy(bleScanned = true)
+                val updated = _scanSnapshot.value.copy(bleScanned = true)
+                _scanSnapshot.value = updated
+                replaceLatestScan(updated)
             }
         }
+    }
+
+    private fun rememberScan(snapshot: ScanSnapshot) {
+        _scanHistory.value = (_scanHistory.value + snapshot)
+            .sortedByDescending { it.ranAtMillis }
+            .take(10)
+    }
+
+    private fun replaceLatestScan(snapshot: ScanSnapshot) {
+        _scanHistory.value = _scanHistory.value
+            .filterNot { it.ranAtMillis == snapshot.ranAtMillis }
+            .plus(snapshot)
+            .sortedByDescending { it.ranAtMillis }
+            .take(10)
     }
 
     /**

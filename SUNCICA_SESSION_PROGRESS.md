@@ -201,3 +201,23 @@ Added a central manual emergency contact config:
 - Widget `SMS` button uses the same emergency contact. If SMS permission is already
   granted, it sends directly; otherwise it opens the SMS composer with the contact and
   message filled in.
+
+---
+
+## 12. Emergency contact import + scan history
+
+Added follow-up fixes/features:
+
+- Entering the hidden app now requests `SEND_SMS`, `CALL_PHONE`, and `READ_CONTACTS`
+  permissions up front, so SOS does not need to request permissions during panic flow.
+- Emergency contact is now stored via `EmergencyContactStore`; widget and in-app SOS read
+  the same selected contact.
+- SOS tab can load device contacts and select/import one as the active emergency contact.
+- The selected emergency contact can be called directly when `CALL_PHONE` is granted;
+  otherwise the app falls back to the dialer.
+- SOS SMS send is wrapped so denied/missing SMS capability does not crash the app.
+- Countdown cancel screen now shows a numpad and says to enter the user's PIN, without
+  revealing that the demo cancel PIN is `0`.
+- Sken tab now has a working in-memory scan history log for the latest scan snapshots.
+- Account checking remains intentionally unimplemented; the UI now describes the planned
+  approach instead of pretending it is functional.
