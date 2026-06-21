@@ -102,9 +102,8 @@ object LocationAudit {
             ?: return emptyList()
 
         val labelToApps = mutableMapOf<String, MutableSet<String>>()
-        val flags = AppOpsManager.OP_FLAG_SELF or
-            AppOpsManager.OP_FLAG_TRUSTED_PROXY or
-            AppOpsManager.OP_FLAG_TRUSTED_PROXIED
+        // 0x1=OP_FLAG_SELF, 0x2=OP_FLAG_TRUSTED_PROXY, 0x8=OP_FLAG_TRUSTED_PROXIED (all @hide)
+        val flags = 0x1 or 0x2 or 0x8
 
         for (rawPkg in packages) {
             rawPkg ?: continue
@@ -204,9 +203,8 @@ object LocationAudit {
         @Suppress("UNCHECKED_CAST")
         val packages = method.invoke(appOps, locationOps as Any) as? List<*> ?: return emptyList()
         val found = mutableSetOf<String>()
-        val flags = AppOpsManager.OP_FLAG_SELF or
-            AppOpsManager.OP_FLAG_TRUSTED_PROXY or
-            AppOpsManager.OP_FLAG_TRUSTED_PROXIED
+        // 0x1=OP_FLAG_SELF, 0x2=OP_FLAG_TRUSTED_PROXY, 0x8=OP_FLAG_TRUSTED_PROXIED (all @hide)
+        val flags = 0x1 or 0x2 or 0x8
         for (rawPkg in packages) {
             rawPkg ?: continue
             val pkgCls = rawPkg.javaClass
