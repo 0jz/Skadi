@@ -124,9 +124,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val findings = withContext(Dispatchers.Default) {
                 packageScanner.scan()
             }
+            val activePerms = LocationAudit.activeAllPermApps(getApplication())
             _scanSnapshot.value = ScanSnapshot(
                 findings = findings,
                 ranAtMillis = System.currentTimeMillis(),
+                activePermUsage = activePerms,
             )
             _isScanning.value = false
 
@@ -170,7 +172,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         _leciReport.value = LeciReport.demo().copy(
             preflight = preflight,
-            apps = AppsSection(findings = snapshot.findings, ready = snapshot.ranAtMillis > 0),
+            apps = AppsSection(
+                findings = snapshot.findings,
+                activePermUsage = snapshot.activePermUsage,
+                ready = snapshot.ranAtMillis > 0,
+            ),
             accounts = AccountsSection(entries = AccountAudit.demoAccounts(), ready = true),
             location = LocationSection(
                 activeLocationApps = activeLocation,
@@ -247,9 +253,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val s = _timer.value
         _timer.value = s.copy(running = true, remainingSec = s.totalSec, justFinished = false)
         tickJob?.cancel()
-        tickJob = viewModelScope.launch {
-            while (_timer.value.remainingSec > 0) {
-                delay(1000)
-                val cur = _timer.value
-                if (!cur.running) return@launch
-                _timer.value 
+   

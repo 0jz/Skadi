@@ -36,6 +36,7 @@ import com.smiraj.meditation.R
 import com.smiraj.meditation.scan.BleTrackerFinding
 import com.smiraj.meditation.scan.Finding
 import com.smiraj.meditation.scan.FindingSeverity
+import com.smiraj.meditation.scan.PermUsage
 import com.smiraj.meditation.scan.ScanSnapshot
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +77,33 @@ fun DiagnosticsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+            }
+
+            // ---- BLE tracker scan results -----------------------------------
+            item {
+                BleTrackerSection(
+                    trackers = snapshot.bleTrackers,
+                    scanned = snapshot.bleScanned,
+                    appScanDone = !isScanning,
+                )
+            }
+
+            item {
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = onOpenSafetyGate,
+                    enabled = !isScanning,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.diag_review_options))
+                }
+            }
+
+            // ---- Active permission usage ------------------------------------
+            if (!isScanning && snapshot.activePermUsage.isNotEmpty()) {
+                item {
+                    ActivePermissionsSection(snapshot.activePermUsage)
+                }
             }
 
             // ---- App permission scan results --------------------------------
@@ -127,26 +155,6 @@ fun DiagnosticsScreen(
                 }
             }
 
-            // ---- BLE tracker scan results -----------------------------------
-            item {
-                BleTrackerSection(
-                    trackers = snapshot.bleTrackers,
-                    scanned = snapshot.bleScanned,
-                    appScanDone = !isScanning,
-                )
-            }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                Button(
-                    onClick = onOpenSafetyGate,
-                    enabled = !isScanning,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.diag_review_options))
-                }
-            }
-
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
@@ -175,14 +183,4 @@ private fun BleTrackerSection(
                 Icon(
                     Icons.Filled.Bluetooth,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    stringResource(R.string.diag_ble_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-
-            when {
-                !appScanDone -> {
-                    // Wait for pac
+                    tint =

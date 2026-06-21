@@ -61,8 +61,9 @@ object LocationAudit {
     )
 
     /**
-     * Returns display names of apps that are currently running in the foreground or as a
-     * foreground service AND hold a location permission.
+     * Checks a predefined set of surveillance-relevant dangerous permissions and returns
+     * one [PermUsage] entry per permission that has at least one active foreground app.
      *
-     * Uses only public APIs (ActivityManager.getRunningAppProcesses + PackageManager.checkPermission).
-     * "Currently using location" is approxi
+     * Covers: location, microphone, camera, contacts, call log, SMS, phone state,
+     * body sensors, and media.
+ 

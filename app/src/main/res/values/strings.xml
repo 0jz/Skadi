@@ -99,6 +99,9 @@
     <string name="leci_location_message_hint">Šalje samo okvirnu lokaciju — ne tačnu adresu.</string>
     <string name="location_check_settings">Proveri podešavanja</string>
 
+    <!-- Active permission usage (Diagnostics + Leči) -->
+    <string name="diag_active_perms_title">Ko sada koristi permisije</string>
+
     <!-- BLE tracker scan (Diagnostics screen) -->
     <string name="diag_ble_title">Bluetooth trackeri u blizini</string>
     <string name="diag_ble_waiting">Čekanje na završetak skeniranja aplikacija&#8230;</string>
@@ -135,6 +138,4 @@
     <string name="cut_location_step_findmy">Find My Device / Find My (Apple) → isključi deljenje sa svim nepoznatim uređajima.</string>
     <string name="cut_location_step_carrier">Kontaktiraj mobilnog operatera i proveri ko ima administratorski pristup ugovoru.</string>
     <string name="cut_location_family_account_title">Ako napadač kontroliše porodični nalog</string>
-    <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga: izvezi bitne podatke (kontakte, fotografije, kalendar), pripremi novi nalog i koordiniši sa osobom od poverenja.</string>
-
-    <!-- Seči 
+    <string name="cut_location_family_account_body">Napusti porodičnu grupu tek kad je plan gotov. Pre toga: 

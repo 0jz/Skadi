@@ -57,6 +57,7 @@ import com.smiraj.meditation.scan.FindingSeverity
 import com.smiraj.meditation.scan.LeciReport
 import com.smiraj.meditation.scan.LocationFinding
 import com.smiraj.meditation.scan.LocationSection
+import com.smiraj.meditation.scan.PermUsage
 import com.smiraj.meditation.scan.PreflightResult
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,6 +117,11 @@ fun SafetyScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (report.apps.activePermUsage.isNotEmpty()) {
+                        item {
+                            ActivePermissionsCard(report.apps.activePermUsage)
+                        }
                     }
                     item {
                         ReportSectionCard(
@@ -216,6 +222,42 @@ private fun ReportSectionCard(icon: ImageVector, title: String, content: @Compos
                 Text(title, style = MaterialTheme.typography.titleMedium)
             }
             content()
+        }
+    }
+}
+
+// ---- Active permission usage card -----------------------------------------
+
+@Composable
+private fun ActivePermissionsCard(usages: List<PermUsage>) {
+    Surface(
+        color = Color(0xFFC62828).copy(alpha = 0.08f),
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                stringResource(R.string.diag_active_perms_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = Color(0xFFC62828),
+            )
+            usages.forEach { usage ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        usage.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFFC62828),
+                    )
+                    Text(
+                        usage.apps.joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }
@@ -696,37 +738,4 @@ private fun CutPanel(
 // ---- Resource panel --------------------------------------------------------
 
 @Composable
-private fun ResourcePanel(onCallAstra: () -> Unit, onCallPolice: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.resources_title), style = MaterialTheme.typography.titleMedium)
-            OutlinedButton(onClick = onCallAstra, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.call_astra))
-            }
-            OutlinedButton(onClick = onCallPolice, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.call_police))
-            }
-        }
-    }
-}
-
-// ---- Helpers ---------------------------------------------------------------
-
-@Composable
-private fun PlaceholderText(text: String) {
-    Text(text = text, style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun SeverityChip(severity: FindingSeverity) {
-    val (label, color) = when (severity) {
-        FindingSeverity.Low    -> stringResource(R.string.risk_low)    to Color(0xFF2E7D32)
-        FindingSeverity.Medium -> stringResource(R.string.risk_medium) to Color(0xFFF9A825)
-        FindingSeverity.High   -> stringResource(R.string.risk_high)   to Color(0xFFC62828)
-    }
-    Surface(color = color.copy(alpha = 0.14f), contentColor = color, shape = MaterialTheme.shapes.small) {
-        Text(text = label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall)
-    }
-}
+private fun ResourcePanel(onCallAstra: () -> Unit,

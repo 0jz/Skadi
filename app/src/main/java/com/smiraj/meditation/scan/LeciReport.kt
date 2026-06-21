@@ -33,8 +33,13 @@ data class LeciReport(
 
 // ---- Section 1: Apps and dangerous access ----------------------------------
 
+/** One entry per permission that has at least one active foreground app. */
+data class PermUsage(val label: String, val apps: List<String>)
+
 data class AppsSection(
     val findings: List<Finding>,
+    /** Permissions currently in active use, with the apps holding them. */
+    val activePermUsage: List<PermUsage> = emptyList(),
     val ready: Boolean,
 )
 
@@ -97,18 +102,4 @@ data class LocationSection(
 
 data class DeviceSection(
     val checkItems: List<DeviceCheckItem>,
-    val ready: Boolean,
-)
-
-data class DeviceCheckItem(
-    val label: String,
-    val guidance: String,
-    val severity: FindingSeverity,
-)
-
-// ---- Location finding (family / shared-account risk) -----------------------
-
-/**
- * A single guided location-exposure finding.
- *
- * These c
+    val ready: Boolea
