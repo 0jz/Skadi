@@ -45,7 +45,7 @@
             android:layout_weight="1"
             android:background="@drawable/widget_button_danger"
             android:gravity="center"
-            android:text="SMS"
+            android:text="Msg"
             android:textColor="#FFFFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -58,7 +58,7 @@
             android:layout_weight="1"
             android:background="@drawable/widget_button_neutral"
             android:gravity="center"
-            android:text="SOS"
+            android:text="Info"
             android:textColor="#FFFFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />

@@ -64,29 +64,11 @@ private fun SmirajApp(vm: AppViewModel = viewModel()) {
         }
     }
 
-    val smsPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            runCatching { EmergencySms.sendToEmergencyContact(context) }
-                .onFailure {
-                    Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
-                }
-            Unit
-        } else {
-            Toast.makeText(context, "SMS dozvola nije odobrena", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     val sendEmergencySms: () -> Unit = {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
-            runCatching { EmergencySms.sendToEmergencyContact(context) }
-                .onFailure {
-                    Toast.makeText(context, "SMS nije poslat", Toast.LENGTH_SHORT).show()
-                }
-            Unit
-        } else {
-            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+        runCatching {
+            context.startActivity(EmergencySms.composerIntent(context))
+        }.onFailure {
+            Toast.makeText(context, "Poruke nisu dostupne", Toast.LENGTH_SHORT).show()
         }
     }
 

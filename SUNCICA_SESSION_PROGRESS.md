@@ -79,7 +79,7 @@ Previously these tabs were static mockups. They now work:
   (Udahni) and contracts (Izdahni) on a 4-second cycle, silent, with a "Završi" exit.
 - **Mir → Uzemljavanje (grounding):** `GroundingExercise` — the 5-4-3-2-1 technique, one
   plain prompt at a time, tap "Dalje" to advance.
-- **Mir → Pozovi podršku:** dials the SOS line 0800 100 600.
+- **Mir → Info linija:** dials the same support line with a neutral label.
 - **Uči:** the 5 education topics now open readable, plain-language article screens
   (Serbian) with back navigation. Content covers grooming, forms of abuse, digital
   safety, what to do if something happens (incl. 192 / 194 / 112 / SOS), and how to help
@@ -143,7 +143,7 @@ Changed:
 2. App opens to the **weather screen** (Belgrade forecast).
 3. **Double-tap the temperature** → hidden 5-tab safety app opens (SOS tab first).
 4. Tap **Sken → Skeniraj sada** to run the real device scan; findings appear themed.
-5. **Mir → Disanje** animates breathing; **Uzemljavanje** runs 5-4-3-2-1; **Pozovi podršku** dials.
+5. **Mir → Disanje** animates breathing; **Uzemljavanje** runs 5-4-3-2-1; **Info linija** dials.
 6. **Uči** → tap any topic to read the article; "‹ Nazad" returns.
 7. **System back** from anywhere in the hidden app = panic exit back to the weather screen.
 
@@ -192,15 +192,13 @@ Added a central manual emergency contact config:
 
 - `emergency/EmergencyContact.kt` stores the contact name, phone number, and SMS body.
   Replace `PHONE` with the real trusted contact before demo/use.
-- `emergency/EmergencySms.kt` sends that SMS through Android `SmsManager`.
-- Manifest now requests `SEND_SMS`.
-- Hidden SOS contact list now includes a direct `SMS` row for the emergency contact.
-  The first tap requests SMS permission if needed; after permission is granted it sends
-  the configured SOS message.
-- SOS timeout flow now calls the same SMS sender before moving to the false black screen.
-- Widget `SMS` button uses the same emergency contact. If SMS permission is already
-  granted, it sends directly; otherwise it opens the SMS composer with the contact and
-  message filled in.
+- `emergency/EmergencySms.kt` now opens the system SMS composer with the trusted
+  contact and message filled in. This avoids direct `SmsManager` crashes on devices
+  without a stable default SMS/SIM path.
+- Manifest no longer requests `SEND_SMS`; the composer flow does not need it.
+- Hidden Signal contact list now includes a neutral `MSG` row for the emergency contact.
+- SOS timeout flow opens the same composer path before moving to the false black screen.
+- Widget `Msg` button uses the same emergency contact and opens the SMS composer.
 
 ---
 
@@ -208,14 +206,14 @@ Added a central manual emergency contact config:
 
 Added follow-up fixes/features:
 
-- Entering the hidden app now requests `SEND_SMS`, `CALL_PHONE`, and `READ_CONTACTS`
-  permissions up front, so SOS does not need to request permissions during panic flow.
+- Entering/importing the hidden app requests contact/call permissions only when needed;
+  SMS uses the system composer and does not need `SEND_SMS`.
 - Emergency contact is now stored via `EmergencyContactStore`; widget and in-app SOS read
   the same selected contact.
 - SOS tab can load device contacts and select/import one as the active emergency contact.
 - The selected emergency contact can be called directly when `CALL_PHONE` is granted;
   otherwise the app falls back to the dialer.
-- SOS SMS send is wrapped so denied/missing SMS capability does not crash the app.
+- SOS message flow uses the SMS composer so denied/missing SMS capability does not crash the app.
 - Countdown cancel screen now shows a numpad and says to enter the user's PIN, without
   revealing that the demo cancel PIN is `0`.
 - Sken tab now has a working in-memory scan history log for the latest scan snapshots.

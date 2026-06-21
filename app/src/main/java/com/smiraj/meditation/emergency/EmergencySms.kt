@@ -1,21 +1,16 @@
 package com.smiraj.meditation.emergency
 
 import android.content.Context
-import android.telephony.SmsManager
+import android.content.Intent
+import android.net.Uri
 
 object EmergencySms {
-    fun sendToEmergencyContact(context: Context) {
+    fun composerIntent(context: Context): Intent {
         val contact = EmergencyContactStore.get(context)
-        send(contact.phone, EmergencyContact.MESSAGE)
-    }
-
-    fun send(phone: String, message: String = EmergencyContact.MESSAGE) {
-        SmsManager.getDefault().sendTextMessage(
-            phone,
-            null,
-            message,
-            null,
-            null,
-        )
+        val phone = contact.phone.filter { it.isDigit() || it == '+' }
+        return Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$phone")).apply {
+            putExtra("sms_body", EmergencyContact.MESSAGE)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 }

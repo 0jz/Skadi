@@ -67,7 +67,7 @@ import java.util.Locale
  */
 
 private val NAV_ITEMS = listOf(
-    NavItem("🛡", "SOS"),   // 🛡
+    NavItem("🛡", "Signal"),   // 🛡
     NavItem("📍", "Mapa"),  // 📍
     NavItem("🔍", "Sken"),  // 🔍
     NavItem("🤍", "Mir"),   // 🤍
@@ -165,12 +165,12 @@ private fun SosTab(
 
         Spacer(Modifier.height(24.dp))
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("DRŽI ZA POMOĆ", color = Suncica.TextMuted, fontSize = 10.sp, letterSpacing = 1.sp)
+            Text("DRŽI ZA SIGNAL", color = Suncica.TextMuted, fontSize = 10.sp, letterSpacing = 1.sp)
             Spacer(Modifier.height(14.dp))
             ConcentricRings(onReleased = { showCancel = true })
             Spacer(Modifier.height(12.dp))
             Text(
-                "Pritisni i drži\nza slanje upozorenja",
+                "Pritisni i drži\nza tihi signal",
                 color = Suncica.TextSecondary.copy(alpha = 0.65f),
                 fontSize = 11.sp,
             )
@@ -178,9 +178,9 @@ private fun SosTab(
 
         Spacer(Modifier.height(24.dp))
         FrostedCard {
-            ContactRow("SMS", "${emergencyContact.name} — pošalji SOS SMS") { onSendEmergencyMessage() }
+            ContactRow("MSG", "${emergencyContact.name} — pošalji poruku") { onSendEmergencyMessage() }
             CardDivider()
-            ContactRow("CALL", "${emergencyContact.name} — pozovi odmah") { onDial(emergencyContact.phone) }
+            ContactRow("TEL", "${emergencyContact.name} — pozovi") { onDial(emergencyContact.phone) }
             CardDivider()
             ContactRow("IMP", "Importuj hitni kontakt", emergencyContact.phone) {
                 onLoadContacts()
@@ -205,7 +205,7 @@ private fun SosTab(
             CardDivider()
             ContactRow("👤", "Mama") { }
             CardDivider()
-            ContactRow("🏛", "Hitna — 112") { onDial("112") }
+            ContactRow("🏛", "Brza linija", "112") { onDial("112") }
         }
         }
     }
@@ -768,7 +768,7 @@ private fun MirTab(onDial: (String) -> Unit) {
                 CardDivider()
                 ListRow("👁", "Uzemljavanje", "5-4-3-2-1 tehnika") { sub = 2 }
                 CardDivider()
-                ListRow("📞", "Pozovi podršku", "0800 100 600", showChevron = false) { onDial("0800100600") }
+                ListRow("📞", "Info linija", "Dostupno 24/7", showChevron = false) { onDial("0800100600") }
             }
         }
     }
