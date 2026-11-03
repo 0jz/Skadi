@@ -1,5 +1,7 @@
 # Skadi
 
+[![CI](https://github.com/0jz/Skadi/actions/workflows/ci.yml/badge.svg)](https://github.com/0jz/Skadi/actions/workflows/ci.yml)
+
 A survivor-centered Android anti-tracking tool for people facing tech-facilitated abuse: it helps find how an abuser may be monitoring a phone, then guides a safe response instead of a one-tap "delete". For developers, security researchers and advocates.
 
 Built at the SheSafe Hackathon (Challenge 03, Tracking Check), Belgrade, June 2026.
