@@ -14,3 +14,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# IDE and build output
+/.idea/
+*.apk
+*.aab
