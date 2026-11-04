@@ -7,7 +7,7 @@ Skadi: survivor-centered Android anti-tracking tool hidden inside a working cove
 - Build: `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
 - Install: `adb install -r app/build/outputs/apk/debug/app-debug.apk` (use a real phone, not an emulator)
 - Lint: `./gradlew lint` (standard AGP task)
-- Tests: none exist yet.
+- Tests: `./gradlew :app:testDebugUnitTest` (JVM unit tests in `app/src/test`, incl. `SafetyRulesTest` which statically enforces the rules below).
 
 ## Where logic lives (`app/src/main/java/com/smiraj/meditation/`)
 - `AppViewModel.kt` — `Screen` state; `onCustomDurationEntered()` is the ONLY entry to the hidden layer

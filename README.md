@@ -76,9 +76,10 @@ No environment variables, API keys or backend. All configuration is in Gradle:
 |---|---|
 | Debug build | `./gradlew assembleDebug` |
 | Install on phone | `adb install -r app/build/outputs/apk/debug/app-debug.apk` |
+| Unit tests | `./gradlew :app:testDebugUnitTest` |
 | Android lint | `./gradlew lint` |
 
-There are no automated tests yet. [BUILD_AND_DEBUG.md](BUILD_AND_DEBUG.md) has log filters and a manual functional checklist.
+Unit tests run on the plain JVM (no device) and cover the streak logic plus static checks that enforce the privacy rules: the persistence layer never references scan data, hidden screens never touch disk or logs, and `AppViewModel` stays the only entry to the hidden layer. CI runs them on every push. [BUILD_AND_DEBUG.md](BUILD_AND_DEBUG.md) has log filters and a manual functional checklist.
 
 ## Documentation
 
